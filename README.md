@@ -1,4 +1,15 @@
-// --------------------------------------------------------- // TABLE OF CONTENTS (Use Ctrl+F to find these exact terms) // --------------------------------------------------------- // SECTION: CSS STYLES // SECTION: CONFIGURATION // SECTION: BRAWLERS // SUB: SHELLY | SUB: NITA | SUB: COLT | SUB: BULL // SUB: PIPER | SUB: FRANK | SUB: MORTIS | SUB: TARA // SUB: SPIKE | SUB: CROW // SECTION: MAPS // SUB: SKULL CREEK | SUB: OUT IN THE OPEN // SECTION: GAME ENGINE // SUB: START GAME LOGIC | SUB: MAIN GAME LOOP // SECTION: ENTITY CLASS & AI // SUB: AI LOGIC | SUB: SUPER ABILITY LOGIC // SECTION: PROJECTILES // SECTION: VISUAL EFFECTS // ---------------------------------------------------------*/
+// 
+--------------------------------------------------------- 
+// TABLE OF CONTENTS (Use Ctrl+F to find these exact terms) 
+// --------------------------------------------------------- 
+// SECTION: CSS STYLES 
+// SECTION: CONFIGURATION 
+// SECTION: BRAWLERS 
+// SUB: SHELLY | SUB: NITA | SUB: COLT | SUB: BULL // SUB: PIPER | SUB: FRANK | SUB: MORTIS | SUB: TARA // SUB: SPIKE | SUB: CROW 
+// SECTION: MAPS // SUB: SKULL CREEK | SUB: OUT IN THE OPEN 
+// SECTION: GAME ENGINE // SUB: START GAME LOGIC | SUB: MAIN GAME LOOP 
+// SECTION: ENTITY CLASS & AI // SUB: AI LOGIC | SUB: SUPER ABILITY LOGIC 
+// SECTION: PROJECTILES // SECTION: VISUAL EFFECTS // ---------------------------------------------------------*/
 <!DOCTYPE html>
 <html lang="en">
 <head>
