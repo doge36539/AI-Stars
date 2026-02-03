@@ -492,7 +492,7 @@ class Entity {
         }
 
         // Heal Logic
-        if(this.noDmgT > 180 && this.hp < this.maxHp) this.hp += this.maxHp*0.005;
+        if(this.noDmgT > 240 && this.hp < this.maxHp) this.hp += this.maxHp*0.005;
         this.noDmgT++;
 
         let spd = this.data.speed * (this.slowed>0 ? 0.6 : 1);
