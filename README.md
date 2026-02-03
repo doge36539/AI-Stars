@@ -1,35 +1,4 @@
-/* =========================================================================
-   CODE NAVIGATION KEY (TABLE OF CONTENTS)
-   Copy the exact text below (e.g. "SECTION: BRAWLERS") and use Ctrl+F
-=========================================================================
-
-1. SECTION: CSS STYLES
-2. SECTION: CONFIGURATION
-3. SECTION: BRAWLERS
-   - SUB: SHELLY
-   - SUB: NITA
-   - SUB: COLT
-   - SUB: BULL
-   - SUB: PIPER
-   - SUB: FRANK
-   - SUB: MORTIS
-   - SUB: TARA
-   - SUB: SPIKE
-   - SUB: CROW
-4. SECTION: MAPS
-   - SUB: SKULL CREEK
-   - SUB: OUT IN THE OPEN
-5. SECTION: GAME ENGINE
-   - SUB: START GAME LOGIC
-   - SUB: MAIN GAME LOOP
-6. SECTION: ENTITY CLASS & AI
-   - SUB: AI LOGIC
-   - SUB: SUPER ABILITY LOGIC
-7. SECTION: PROJECTILES (BULLETS)
-8. SECTION: VISUAL EFFECTS (PARTICLES)
-
-=========================================================================
-*/
+// --------------------------------------------------------- // TABLE OF CONTENTS (Use Ctrl+F to find these exact terms) // --------------------------------------------------------- // SECTION: CSS STYLES // SECTION: CONFIGURATION // SECTION: BRAWLERS // SUB: SHELLY | SUB: NITA | SUB: COLT | SUB: BULL // SUB: PIPER | SUB: FRANK | SUB: MORTIS | SUB: TARA // SUB: SPIKE | SUB: CROW // SECTION: MAPS // SUB: SKULL CREEK | SUB: OUT IN THE OPEN // SECTION: GAME ENGINE // SUB: START GAME LOGIC | SUB: MAIN GAME LOOP // SECTION: ENTITY CLASS & AI // SUB: AI LOGIC | SUB: SUPER ABILITY LOGIC // SECTION: PROJECTILES // SECTION: VISUAL EFFECTS // ---------------------------------------------------------*/
 <!DOCTYPE html>
 <html lang="en">
 <head>
