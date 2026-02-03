@@ -1,7 +1,4 @@
-/* =========================================================================
-   CODE NAVIGATION KEY (TABLE OF CONTENTS)
-   Use Ctrl+F to jump to these specific sections.
-=========================================================================
+/* navigation key
 
 1. SECTION: CSS STYLES
    (Contains all visual styling for UI, Canvas, and Menus)
