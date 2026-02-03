@@ -52,7 +52,7 @@
     body { margin: 0; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; user-select: none; }
     
     #game-wrapper {
-        position: relative; width: 100vw; height: 56.25vw;
+        position: relative; width: 125vw; height: 65vw;
         max-height: 100vh; max-width: 177.78vh;
         background: #151515; box-shadow: 0 0 50px #000;
     }
