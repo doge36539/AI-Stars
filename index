@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Brawl Emoji: Modular Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-layer">
+            <div id="game-info"></div>
+            <div id="kill-feed"></div>
+            <div id="hud">
+                <div id="ammo-bar-container">
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo1"></div></div>
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo2"></div></div>
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo3"></div></div>
+                </div>
+                <div id="super-btn">SUPER</div>
+            </div>
+        </div>
+        <div id="screen-home" class="screen">
+            <h1>BRAWL EMOJI</h1>
+            <div style="display:flex; gap:20px">
+                <button class="btn btn-yel" id="btn-showdown">SKULL CREEK (SOLO)</button>
+                <button class="btn btn-red" id="btn-knockout">OUT IN OPEN (3v3)</button>
+            </div>
+        </div>
+        <div id="screen-select" class="screen hidden">
+            <h2>SELECT BRAWLER</h2>
+            <div class="grid" id="grid"></div>
+            <div id="brawler-desc"></div>
+            <button class="btn btn-yel" id="play-btn" disabled>BRAWL!</button>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
