@@ -1,11 +1,10 @@
-/* navigation key
+/* =========================================================================
+   CODE NAVIGATION KEY (TABLE OF CONTENTS)
+   Copy the exact text below (e.g. "SECTION: BRAWLERS") and use Ctrl+F
+=========================================================================
 
 1. SECTION: CSS STYLES
-   (Contains all visual styling for UI, Canvas, and Menus)
-
 2. SECTION: CONFIGURATION
-   (Global variables like Canvas Size, Tile Size)
-
 3. SECTION: BRAWLERS
    - SUB: SHELLY
    - SUB: NITA
@@ -17,21 +16,16 @@
    - SUB: TARA
    - SUB: SPIKE
    - SUB: CROW
-
 4. SECTION: MAPS
-   - SUB: SKULL CREEK (Showdown)
-   - SUB: OUT IN THE OPEN (Knockout)
-
+   - SUB: SKULL CREEK
+   - SUB: OUT IN THE OPEN
 5. SECTION: GAME ENGINE
-   - SUB: START GAME LOGIC (MODE SPAWNING)
+   - SUB: START GAME LOGIC
    - SUB: MAIN GAME LOOP
-
 6. SECTION: ENTITY CLASS & AI
    - SUB: AI LOGIC
    - SUB: SUPER ABILITY LOGIC
-
 7. SECTION: PROJECTILES (BULLETS)
-
 8. SECTION: VISUAL EFFECTS (PARTICLES)
 
 =========================================================================
