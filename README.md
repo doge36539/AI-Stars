@@ -54,7 +54,7 @@
     </div>
     
     <div id="screen-home" class="screen">
-        <h1>BRAWL EMOJI</h1>
+        <h1>AI Stars V 0.5</h1>
         <div style="display:flex;">
             <button class="btn btn-yel" onclick="Game.setMode('showdown')">SOLO SHOWDOWN</button>
             <button class="btn" onclick="Game.setMode('knockout')">KNOCKOUT 3v3</button>
