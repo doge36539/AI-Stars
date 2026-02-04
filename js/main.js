@@ -247,12 +247,27 @@ class Game {
         this.loop();
     }
 
-    loadMap(ascii) {
+loadMap(originalAscii) {
         this.walls = [];
         this.bushes = [];
         this.entities = [];
         
-        if (!ascii) return;
+        if (!originalAscii) return;
+
+        // --- 1. THE AUTO-WRAPPER LOGIC ---
+        // Calculates width of the map and creates a solid "Z" row for top/bottom
+        const mapW = originalAscii[0].length;
+        const borderRow = "Z".repeat(mapW + 2); 
+        
+        // Builds a new map: Adds Top Border, Wraps sides with Z, Adds Bottom Border
+        let ascii = [];
+        ascii.push(borderRow); 
+        for(let row of originalAscii) {
+            ascii.push("Z" + row + "Z"); 
+        }
+        ascii.push(borderRow); 
+
+        // --- 2. LOAD THE NEW WRAPPED MAP ---
         this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
         this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
 
@@ -262,7 +277,8 @@ class Game {
                 let y = r * CONFIG.TILE_SIZE;
                 let tile = ascii[r][c];
 
-                if (tile === '#') {
+                // 'Z' is treated exactly like '#' (Wall)
+                if (tile === '#' || tile === 'Z') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
                 } else if (tile === 'X') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
@@ -277,8 +293,9 @@ class Game {
             }
         }
         
+        // Spawn Enemies relative to the new map size
         for(let i=0; i<3; i++) {
-            let enemy = new Entity(BRAWLERS[0], this.mapWidth - 200, 200 + (i*200), false, this);
+            let enemy = new Entity(BRAWLERS[0], this.mapWidth - 300, 300 + (i*200), false, this);
             this.entities.push(enemy);
         }
     }
