@@ -1,13 +1,11 @@
-import { BRAWLERS } from './data/brawlers.js';
+import { BRAWLERS } from './data/brawler.js'; // REMOVED THE 's' TO MATCH YOUR FILE
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
-
 export const CONFIG = {
     CANVAS_W: 1600,
     CANVAS_H: 900,
     TILE_SIZE: 50
 };
 
-// --- LOGIC: THE PLAYER & BOTS ---
 class Entity {
     constructor(data, x, y, team, isPlayer, gameInstance) {
         this.data = data;
@@ -19,7 +17,6 @@ class Entity {
         this.maxHp = data.hp;
         this.vx = 0; this.vy = 0;
     }
-
     update() {
         if (this.isPlayer) {
             this.vx = 0; this.vy = 0;
@@ -31,13 +28,10 @@ class Entity {
         this.x += this.vx;
         this.y += this.vy;
     }
-
     draw(ctx) {
         ctx.font = '40px serif';
         ctx.textAlign = 'center';
         ctx.fillText(this.data.icon, this.x, this.y);
-        
-        // Health Bar
         ctx.fillStyle = 'red';
         ctx.fillRect(this.x - 30, this.y - 50, 60, 6);
         ctx.fillStyle = 'lime';
@@ -45,7 +39,6 @@ class Entity {
     }
 }
 
-// --- LOGIC: THE GAME ENGINE ---
 class Game {
     constructor(brawlers, maps) {
         this.canvas = document.getElementById('gameCanvas');
@@ -58,25 +51,21 @@ class Game {
         this.state = 'MENU'; this.keys = {}; this.camera = { x: 0, y: 0 };
         this.selectedBrawler = null;
     }
-
     init() {
-        // Keyboard tracking
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
-
-        // Wiring buttons
+        
+        // WIRE BUTTONS
         document.getElementById('btn-showdown').onclick = () => this.openSelect('showdown');
         document.getElementById('btn-knockout').onclick = () => this.openSelect('knockout');
         document.getElementById('play-btn').onclick = () => this.startMatch();
     }
-
     openSelect(mode) {
         this.mode = mode;
         document.getElementById('screen-home').classList.add('hidden');
         document.getElementById('screen-select').classList.remove('hidden');
         this.renderGrid();
     }
-
     renderGrid() {
         const grid = document.getElementById('grid');
         grid.innerHTML = '';
@@ -94,7 +83,6 @@ class Game {
             grid.appendChild(card);
         });
     }
-
     startMatch() {
         document.getElementById('screen-select').classList.add('hidden');
         document.getElementById('hud').style.display = 'block';
@@ -104,24 +92,20 @@ class Game {
         this.player = new Entity(this.selectedBrawler, 400, 400, 0, true, this);
         this.entities.push(this.player);
     }
-
     loadMap(ascii) {
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
-                let x = c * CONFIG.TILE_SIZE, y = r * CONFIG.TILE_SIZE;
-                if (ascii[r][c] === '#') this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE });
-                if (ascii[r][c] === '~') this.bushes.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE });
+                if (ascii[r][c] === '#') this.walls.push({ x: c * 50, y: r * 50, w: 50, h: 50 });
+                if (ascii[r][c] === '~') this.bushes.push({ x: c * 50, y: r * 50, w: 50, h: 50 });
             }
         }
     }
-
     update() {
         if (this.state !== 'GAME') return;
         this.camera.x += (this.player.x - this.canvas.width / 2 - this.camera.x) * 0.1;
         this.camera.y += (this.player.y - this.canvas.height / 2 - this.camera.y) * 0.1;
         this.entities.forEach(e => e.update());
     }
-
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         if (this.state !== 'GAME') return;
@@ -134,7 +118,6 @@ class Game {
     }
 }
 
-// Start
 const game = new Game(BRAWLERS, { showdown: MAP_SKULL_CREEK, knockout: MAP_OUT_OPEN });
 window.onload = () => {
     game.init();
