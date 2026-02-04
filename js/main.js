@@ -1,8 +1,9 @@
+// js/main.js
 import { BRAWLERS } from './data/brawlers.js';
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
-import { Game } from './classes/Game.js';
+import { Game } from './classes/game.js';
 
-// Global Config
+// Configuration constants exported for other files
 export const CONFIG = {
     CANVAS_W: 1600,
     CANVAS_H: 900,
@@ -10,6 +11,19 @@ export const CONFIG = {
     BUSH_RANGE: 140
 };
 
-// Initialize the Game
-const game = new Game(BRAWLERS, { showdown: MAP_SKULL_CREEK, knockout: MAP_OUT_OPEN });
-game.init();
+const game = new Game(BRAWLERS, {
+    showdown: MAP_SKULL_CREEK,
+    knockout: MAP_OUT_OPEN
+});
+
+window.onload = () => {
+    game.init();
+    
+    // Start the animation loop
+    function loop() {
+        game.update();
+        game.draw();
+        requestAnimationFrame(loop);
+    }
+    loop();
+};
