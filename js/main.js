@@ -1,3 +1,4 @@
+import { performAttack } from './combat/attacks.js';
 // js/main.js
 import { BRAWLERS } from './data/brawler.js'; 
 // 1. IMPORT THE MAP FROM YOUR NEW FILE
