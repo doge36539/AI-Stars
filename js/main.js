@@ -305,6 +305,17 @@ loadMap(originalAscii) {
         // CAMERA OFFSET: Change 750 if you need to shift the view left/right
         this.camera.x = this.player.x - 750; 
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
+
+        // 2. Define the Limits (The hard edges of the map)
+        // The camera can't go further right than (Map Width - Screen Width)
+        const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
+        const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
+
+        // 3. Apply the Clamp
+        // Math.max(0, ...) -> Stops it going past Left/Top (0)
+        // Math.min(..., maxCam) -> Stops it going past Right/Bottom
+        this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
+        this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
     }
 
     // --- TEXTURES (Main handles drawing) ---
