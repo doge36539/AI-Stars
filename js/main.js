@@ -249,12 +249,18 @@ class Game {
         }
     }
 
-    updateCamera() {
+   updateCamera() {
         if (!this.player) return;
-        this.camera.x = this.player.x - (CONFIG.CANVAS_W / 2);
+
+        // --- TWEAK THIS NUMBER ---
+        // (CONFIG.CANVAS_W / 2) is 800.
+        // If camera is too far right, try subtracting 900 or 950.
+        // If camera is too far left, try subtracting 700.
+        
+        this.camera.x = this.player.x - 900; // Changed from (CONFIG.CANVAS_W / 2)
+        
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
-
     // --- TEXTURE RENDERERS ---
     
     drawWall(x, y) {
