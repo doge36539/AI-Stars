@@ -119,11 +119,6 @@ class Game {
 const game = new Game(BRAWLERS, { showdown: MAP_SKULL_CREEK, knockout: MAP_OUT_OPEN });
 game.init();
 
-// --- LINK HTML BUTTONS ---
-btnShowdown.onclick = () => game.openSelect('showdown');
-btnKnockout.onclick = () => game.openSelect('knockout');
-playBtn.onclick = () => game.startMatch();
-
 
 function mainLoop() {
     game.update();
