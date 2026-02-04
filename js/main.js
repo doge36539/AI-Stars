@@ -319,10 +319,18 @@ loadMap(originalAscii) {
     }
 
     // --- TEXTURES (Main handles drawing) ---
-    drawWall(x, y) {
-        this.ctx.fillStyle = '#145a32'; this.ctx.fillRect(x, y + 20, 50, 30);
-        this.ctx.fillStyle = '#27ae60'; this.ctx.fillRect(x, y, 50, 45); 
-        this.ctx.fillStyle = '#2ecc71'; this.ctx.fillRect(x, y, 50, 5);
+drawWall(x, y) {
+        // 1. Side Face (Dark Rust/Shadow)
+        this.ctx.fillStyle = '#a04000'; 
+        this.ctx.fillRect(x, y + 20, 50, 30);
+        
+        // 2. Top Face (Desert Orange)
+        this.ctx.fillStyle = '#e67e22'; 
+        this.ctx.fillRect(x, y, 50, 45); 
+        
+        // 3. Highlight (Bright Sun)
+        this.ctx.fillStyle = '#f39c12';
+        this.ctx.fillRect(x, y, 50, 5);
     }
 
     drawWater(x, y) {
