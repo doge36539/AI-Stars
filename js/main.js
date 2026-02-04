@@ -170,8 +170,30 @@ class Game {
         this.mapWidth = 2000;
         this.mapHeight = 1500;
         
+        // --- NEW COMBAT VARIABLES (Add these!) ---
+        this.projectiles = []; 
+        this.mouseX = 0;
+        this.mouseY = 0;
+        
+        // KEYBOARD LISTENERS
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
+
+        // --- NEW MOUSE LISTENERS (Add these!) ---
+        // 1. Track Mouse Position
+        window.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouseX = e.clientX - rect.left;
+            this.mouseY = e.clientY - rect.top;
+        });
+
+        // 2. Detect Click to Shoot
+        window.addEventListener('mousedown', () => {
+            if (this.state === 'GAME' && this.player) {
+                // Ensure you imported performAttack at the top of the file!
+                performAttack(this.player, this, this.mouseX, this.mouseY);
+            }
+        });
     }
 
     init() {
