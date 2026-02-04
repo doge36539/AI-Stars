@@ -1,49 +1,203 @@
 // js/main.js
 import { BRAWLERS } from './data/brawler.js'; 
+import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
-// 1. Force the button to unlock IMMEDIATELY when the page loads
-window.onload = () => {
-    const playBtn = document.getElementById('play-btn');
-    
-    if (playBtn) {
-        // VISUAL PROOF: Change the text so we know JS found it
-        playBtn.innerText = "JS CONNECTED!"; 
-        playBtn.disabled = false; // Force unlock
-        playBtn.style.opacity = "1";
-        
-        playBtn.onclick = () => {
-            alert("GAME STARTING!");
-            // If you see this alert, the button is fixed.
-            // We can then add the game code back.
-        };
-    } else {
-        alert("FATAL ERROR: Could not find button with id='play-btn'");
-    }
-
-    // Connect the other buttons too
-    const btnSolo = document.getElementById('btn-showdown');
-    if (btnSolo) {
-        btnSolo.onclick = () => {
-            document.getElementById('screen-home').style.display = 'none';
-            document.getElementById('screen-select').classList.remove('hidden');
-            document.getElementById('screen-select').style.display = 'flex';
-            renderBrawlers();
-        };
-    }
+// --- CONFIGURATION ---
+const CONFIG = {
+    TILE_SIZE: 50,  // 1600px / 32 tiles = 50px per tile
+    CANVAS_W: 1600,
+    CANVAS_H: 900
 };
 
-function renderBrawlers() {
-    const grid = document.getElementById('grid');
-    if(grid) {
-        grid.innerHTML = '';
+// --- ENTITY (Player & Objects) ---
+class Entity {
+    constructor(data, x, y, isPlayer, game) {
+        this.data = data;
+        this.x = x; 
+        this.y = y;
+        this.isPlayer = isPlayer;
+        this.game = game;
+        this.hp = data.hp || 4000;
+        this.maxHp = data.hp || 4000;
+        this.speed = data.speed || 5; 
+    }
+
+    update() {
+        if (this.isPlayer) {
+            let nextX = this.x;
+            let nextY = this.y;
+
+            if (this.game.keys['w']) nextY -= this.speed;
+            if (this.game.keys['s']) nextY += this.speed;
+            if (this.game.keys['a']) nextX -= this.speed;
+            if (this.game.keys['d']) nextX += this.speed;
+
+            // Simple Boundary Check (Keep inside the screen)
+            if (nextX > 0 && nextX < CONFIG.CANVAS_W - 50) this.x = nextX;
+            if (nextY > 0 && nextY < CONFIG.CANVAS_H - 50) this.y = nextY;
+        }
+    }
+
+    draw(ctx) {
+        // Draw Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(this.x + 25, this.y + 45, 20, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Icon
+        ctx.font = '40px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.data.icon, this.x + 25, this.y + 35);
+        
+        // Draw Health Bar
+        ctx.fillStyle = '#333';
+        ctx.fillRect(this.x, this.y - 15, 50, 5);
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(this.x, this.y - 15, (this.hp / this.maxHp) * 50, 5);
+    }
+}
+
+// --- GAME ENGINE ---
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.canvas.width = CONFIG.CANVAS_W;
+        this.canvas.height = CONFIG.CANVAS_H;
+        
+        this.state = 'MENU';
+        this.selectedBrawler = null;
+        this.mode = 'showdown';
+        this.keys = {};
+        this.entities = [];
+        this.walls = [];
+        
+        window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
+    }
+
+    init() {
+        console.log("Engine Initialized");
+
+        // Wire Buttons
+        const btnSolo = document.getElementById('btn-showdown');
+        const btn3v3 = document.getElementById('btn-knockout');
+        const playBtn = document.getElementById('play-btn');
+
+        if (btnSolo) btnSolo.onclick = () => this.openMenu('showdown');
+        if (btn3v3) btn3v3.onclick = () => this.openMenu('knockout');
+
+        // FORCE UNLOCK THE PLAY BUTTON
+        if (playBtn) {
+            playBtn.removeAttribute('disabled');
+            playBtn.onclick = () => {
+                if (this.selectedBrawler) {
+                    this.startMatch();
+                } else {
+                    alert("Pick a brawler first!");
+                }
+            };
+        }
+    }
+
+    openMenu(mode) {
+        this.mode = mode;
+        document.getElementById('screen-home').style.display = 'none';
+        document.getElementById('screen-select').classList.remove('hidden');
+        document.getElementById('screen-select').style.display = 'flex';
+        this.renderGrid();
+    }
+
+    renderGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = ''; 
+
         BRAWLERS.forEach(b => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<div style="font-size:40px;">${b.icon}</div>`;
+            card.innerHTML = `<div style="font-size:40px;">${b.icon}</div><div>${b.name}</div>`;
+            
             card.onclick = () => {
-                alert("You picked " + b.name);
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                this.selectedBrawler = b;
+                
+                const playBtn = document.getElementById('play-btn');
+                playBtn.disabled = false;
+                playBtn.style.opacity = "1";
+                playBtn.style.cursor = "pointer";
+                document.getElementById('brawler-desc').innerText = b.desc;
             };
             grid.appendChild(card);
         });
     }
+
+    startMatch() {
+        document.getElementById('screen-select').style.display = 'none';
+        this.state = 'GAME';
+
+        // Select correct map
+        const mapData = (this.mode === 'showdown') ? MAP_SKULL_CREEK : MAP_OUT_OPEN;
+        this.loadMap(mapData);
+
+        this.loop();
+    }
+
+    loadMap(ascii) {
+        this.walls = [];
+        this.entities = []; // Reset entities
+
+        if (!ascii) { alert("Map Error!"); return; }
+
+        for (let r = 0; r < ascii.length; r++) {
+            for (let c = 0; c < ascii[r].length; c++) {
+                let x = c * CONFIG.TILE_SIZE;
+                let y = r * CONFIG.TILE_SIZE;
+                let tile = ascii[r][c];
+
+                if (tile === '#') {
+                    this.walls.push({ x, y, type: 'wall' });
+                } else if (tile === 'X') {
+                    this.walls.push({ x, y, type: 'box' });
+                } else if (tile === 'P') {
+                    // Spawn Player Here
+                    this.player = new Entity(this.selectedBrawler, x, y, true, this);
+                    this.entities.push(this.player);
+                }
+            }
+        }
+    }
+
+    loop() {
+        if (this.state !== 'GAME') return;
+
+        // Update
+        this.entities.forEach(e => e.update());
+
+        // Draw Background
+        this.ctx.fillStyle = '#2c3e50';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Walls & Boxes
+        this.walls.forEach(w => {
+            if (w.type === 'wall') {
+                this.ctx.fillStyle = '#27ae60'; // Green Wall
+                this.ctx.fillRect(w.x, w.y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+                this.ctx.strokeStyle = '#1e8449';
+                this.ctx.strokeRect(w.x, w.y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
+            } else if (w.type === 'box') {
+                this.ctx.fillStyle = '#f39c12'; // Orange Box
+                this.ctx.fillRect(w.x+5, w.y+5, 40, 40);
+            }
+        });
+
+        // Draw Entities
+        this.entities.forEach(e => e.draw(this.ctx));
+
+        requestAnimationFrame(() => this.loop());
+    }
 }
+
+const game = new Game();
+window.onload = () => game.init();
