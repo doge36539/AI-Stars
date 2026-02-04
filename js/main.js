@@ -1,37 +1,6 @@
 // js/main.js
-
-// --- 1. DATA (Embedded to prevent loading errors) ---
-const BRAWLERS = [
-    { name: "SHELLY", icon: "🤠", hp: 3800, speed: 6, desc: "Shotgun fighter!" },
-    { name: "COLT", icon: "👮", hp: 2800, speed: 7, desc: "Long range sharpshooter." },
-    { name: "EL PRIMO", icon: "🤼", hp: 5000, speed: 7, desc: "Close range tank." }
-];
-
-// A 60x40 Map (Huge) to force camera scrolling
-const GAME_MAP = [
-    "############################################################",
-    "#..........................................................#",
-    "#......P.....................BBB...........................#",
-    "#............................BBB...........................#",
-    "#...XXXX......BBBB...........BBB...........................#",
-    "#...XXXX......BBBB.........................................#",
-    "#.......................#######............................#",
-    "#.......................#######............................#",
-    "#.......BBBBBB.............................................#",
-    "#.......BBBBBB.............................................#",
-    "#.......BBBBBB...........XXXXX..........BBBBBBBB...........#",
-    "#........................XXXXX..........BBBBBBBB...........#",
-    "#.......................................BBBBBBBB...........#",
-    "#..........................................................#",
-    "#...######.......BBBBBB.........BBBBBB.......######........#",
-    "#...######.......BBBBBB.........BBBBBB.......######........#",
-    "#..........................................................#",
-    "#..........................................................#",
-    "#.........XXXX...........................XXXX..............#",
-    "#.........XXXX...........................XXXX..............#",
-    "#..........................................................#",
-    "############################################################"
-];
+import { BRAWLERS } from './data/brawler.js'; 
+import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
 const CONFIG = {
     TILE_SIZE: 50,
@@ -40,7 +9,7 @@ const CONFIG = {
     AI_SIGHT_RANGE: 600
 };
 
-// --- 2. ENTITY CLASS (Player & AI) ---
+// --- ENTITY CLASS (Logic for Player & Bots) ---
 class Entity {
     constructor(data, x, y, isPlayer, game) {
         this.data = data;
@@ -52,9 +21,9 @@ class Entity {
         this.game = game;
         this.hp = data.hp;
         this.maxHp = data.hp;
-        this.speed = isPlayer ? data.speed : 3.5; 
+        this.speed = isPlayer ? (data.speed || 6) : 3.5; 
         
-        // State
+        // AI State
         this.inBush = false;
         this.targetX = null;
         this.targetY = null;
@@ -72,19 +41,22 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // AI Logic
+            // AI LOGIC
             const player = this.game.player;
             const dist = Math.hypot(player.x - this.x, player.y - this.y);
             
-            // Can I see the player? (Only if close OR player not in bush)
+            // Vision Check: Can I see player?
+            // Yes if: Close range OR (Player not in bush)
+            // No if: Player is far away AND in bush
             const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
 
             if (canSee) {
+                // CHASE
                 this.targetX = player.x;
                 this.targetY = player.y;
                 this.patrolTimer = 0;
             } else {
-                // Patrol Logic
+                // PATROL (Wander)
                 if (this.targetX === null || this.hasReachedTarget()) {
                     this.pickRandomPatrolPoint();
                 }
@@ -107,7 +79,8 @@ class Entity {
 
     pickRandomPatrolPoint() {
         this.patrolTimer++;
-        if (this.patrolTimer < 50) return;
+        if (this.patrolTimer < 50) return; // Wait a bit
+        // Pick random spot within map limits (approx 3000x2000)
         this.targetX = Math.random() * 3000;
         this.targetY = Math.random() * 2000;
         this.patrolTimer = 0;
@@ -144,10 +117,10 @@ class Entity {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
-        // Visual Hiding Logic
+        // Visibility / Hiding
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.5; // Player semi-transparent
-            else return; // AI totally invisible in bush
+            if (this.isPlayer) ctx.globalAlpha = 0.5; // Ghost mode for player
+            else return; // AI is invisible in bush
         } else {
             ctx.globalAlpha = 1.0;
         }
@@ -173,15 +146,17 @@ class Entity {
     }
 }
 
-// --- 3. GAME ENGINE ---
+// --- GAME ENGINE ---
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.canvas.width = CONFIG.CANVAS_W;
         this.canvas.height = CONFIG.CANVAS_H;
+        
         this.state = 'MENU';
         this.selectedBrawler = null;
+        this.mode = 'showdown';
         this.keys = {};
         this.entities = [];
         this.walls = [];
@@ -193,18 +168,21 @@ class Game {
     }
 
     init() {
-        console.log("FIXED VERSION LOADED"); 
-
         const btnSolo = document.getElementById('btn-showdown');
+        const btn3v3 = document.getElementById('btn-knockout');
         const playBtn = document.getElementById('play-btn');
-        if (btnSolo) btnSolo.onclick = () => this.openMenu();
+
+        if (btnSolo) btnSolo.onclick = () => this.openMenu('showdown');
+        if (btn3v3) btn3v3.onclick = () => this.openMenu('knockout');
+
         if (playBtn) {
             playBtn.removeAttribute('disabled');
             playBtn.onclick = () => { if (this.selectedBrawler) this.startMatch(); };
         }
     }
 
-    openMenu() {
+    openMenu(mode) {
+        this.mode = mode;
         document.getElementById('screen-home').style.display = 'none';
         document.getElementById('screen-select').classList.remove('hidden');
         document.getElementById('screen-select').style.display = 'flex';
@@ -232,7 +210,9 @@ class Game {
     startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
-        this.loadMap(GAME_MAP);
+        
+        const mapData = (this.mode === 'showdown') ? MAP_SKULL_CREEK : MAP_OUT_OPEN;
+        this.loadMap(mapData);
         this.loop();
     }
 
@@ -241,6 +221,8 @@ class Game {
         this.bushes = [];
         this.entities = [];
         
+        if (!ascii) ascii = ["################", "#P............X#", "################"];
+
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
                 let x = c * CONFIG.TILE_SIZE;
@@ -260,6 +242,7 @@ class Game {
             }
         }
         
+        // Spawn 3 Bots
         for(let i=0; i<3; i++) {
             let enemy = new Entity(BRAWLERS[0], 1000, 500 + (i*200), false, this);
             this.entities.push(enemy);
@@ -272,13 +255,30 @@ class Game {
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
 
-    drawBush(ctx, x, y) {
-        ctx.fillStyle = '#2ecc71'; 
-        ctx.beginPath();
-        ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
-        ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
-        ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
-        ctx.fill();
+    // --- TEXTURE RENDERERS ---
+    
+    drawWall(x, y) {
+        // 1. Side Face (Darker)
+        this.ctx.fillStyle = '#145a32'; 
+        this.ctx.fillRect(x, y + 20, 50, 30);
+        // 2. Top Face (Lighter)
+        this.ctx.fillStyle = '#27ae60'; 
+        this.ctx.fillRect(x, y, 50, 45); 
+        // 3. Highlight
+        this.ctx.fillStyle = '#2ecc71';
+        this.ctx.fillRect(x, y, 50, 5);
+    }
+
+    drawBush(x, y) {
+        this.ctx.fillStyle = '#2ecc71'; 
+        this.ctx.beginPath();
+        // 5 overlapping circles for "Cloud" look
+        this.ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
+        this.ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
+        this.ctx.arc(x + 40, y + 10, 20, 0, Math.PI * 2);
+        this.ctx.arc(x + 10, y + 40, 20, 0, Math.PI * 2);
+        this.ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
+        this.ctx.fill();
     }
 
     loop() {
@@ -287,11 +287,10 @@ class Game {
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // Background
+        // 1. Draw Floor (Dark Blue with Grid)
         this.ctx.fillStyle = '#212f3c'; 
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Grid
         this.ctx.strokeStyle = '#2c3e50';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
@@ -301,16 +300,14 @@ class Game {
         for (let y = offsetY; y < this.canvas.height; y += 50) { this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); }
         this.ctx.stroke();
 
-        // Draw Walls & Boxes
+        // 2. Draw Walls & Boxes (offset by camera)
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
             
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
                 if (w.type === 'wall') {
-                     // FIX: Used this.ctx instead of ctx
-                    this.ctx.fillStyle = '#145a32'; this.ctx.fillRect(drawX, drawY + 20, 50, 30);
-                    this.ctx.fillStyle = '#27ae60'; this.ctx.fillRect(drawX, drawY, 50, 45);
+                    this.drawWall(drawX, drawY);
                 } else if (w.type === 'box') {
                     this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
                     this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
@@ -318,16 +315,16 @@ class Game {
             }
         });
 
-        // Draw Bushes
+        // 3. Draw Bushes (offset by camera)
         this.bushes.forEach(b => {
             let drawX = b.x - this.camera.x;
             let drawY = b.y - this.camera.y;
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                this.drawBush(this.ctx, drawX, drawY);
+                this.drawBush(drawX, drawY);
             }
         });
 
-        // Draw Entities
+        // 4. Draw Entities (sorted by Y for depth)
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
 
