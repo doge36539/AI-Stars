@@ -1,6 +1,6 @@
 // js/main.js
 
-// 1. IMPORT YOUR DATA
+// 1. IMPORT YOUR DATA (Crucial!)
 import { BRAWLERS } from './data/brawler.js'; 
 
 window.onload = () => {
@@ -12,7 +12,7 @@ window.onload = () => {
             document.getElementById('screen-home').style.display = 'none';
             document.getElementById('screen-select').classList.remove('hidden');
             
-            // 2. RUN THE DRAWING FUNCTION
+            // 2. BUILD THE GRID
             renderBrawlers();
         };
     }
@@ -26,31 +26,33 @@ window.onload = () => {
     }
 };
 
-// 3. THE DRAWING FUNCTION
+// 3. THE "BUILDER" FUNCTION
 function renderBrawlers() {
     const grid = document.getElementById('grid');
     if (!grid) return;
 
-    grid.innerHTML = ''; // Clear anything already there
+    grid.innerHTML = ''; // Clear the grid first
 
-    // Loop through your Shelly, Nita, Colt list
-    BRAWLERS.forEach(b => {
+    // Look at your BRAWLERS list and make a card for each one
+    BRAWLERS.forEach(brawler => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <div style="font-size:50px;">${b.icon}</div>
-            <div style="color:white; font-size:14px; font-weight:bold;">${b.name}</div>
+            <div style="font-size:50px;">${brawler.icon}</div>
+            <div style="color:white; font-size:14px; font-weight:bold;">${brawler.name}</div>
         `;
         
-        // When you click a brawler
+        // When you click a brawler icon
         card.onclick = () => {
+            // Remove "selected" look from everyone else
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            // Add "selected" look to this one
             card.classList.add('selected');
             
-            // Show their description
-            document.getElementById('brawler-desc').innerText = b.desc;
+            // Show the description you wrote in brawler.js
+            document.getElementById('brawler-desc').innerText = brawler.desc;
             
-            // Enable the Play Button
+            // Enable the BRAWL button
             const playBtn = document.getElementById('play-btn');
             playBtn.disabled = false;
             playBtn.style.opacity = "1";
