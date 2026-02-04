@@ -1,5 +1,6 @@
 // js/main.js
 import { BRAWLERS } from './data/brawler.js'; 
+// 1. IMPORT THE MAP FROM YOUR NEW FILE
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
 const CONFIG = {
@@ -9,7 +10,15 @@ const CONFIG = {
     AI_SIGHT_RANGE: 600
 };
 
-// --- ENTITY CLASS (Logic for Player & Bots) ---
+// 2. ASSET PATHS (Make sure these images exist or it uses squares)
+const ASSETS = {
+    'wall': 'images/wall.png',
+    'bush': 'images/bush.png',
+    'box':  'images/box.png',
+    'water': 'images/water.png'
+};
+const IMAGES = {};
+
 class Entity {
     constructor(data, x, y, isPlayer, game) {
         this.data = data;
@@ -23,7 +32,6 @@ class Entity {
         this.maxHp = data.hp;
         this.speed = isPlayer ? (data.speed || 6) : 3.5; 
         
-        // AI State
         this.inBush = false;
         this.targetX = null;
         this.targetY = null;
@@ -41,22 +49,16 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // AI LOGIC
+            // AI Logic
             const player = this.game.player;
             const dist = Math.hypot(player.x - this.x, player.y - this.y);
-            
-            // Vision Check: Can I see player?
-            // Yes if: Close range OR (Player not in bush)
-            // No if: Player is far away AND in bush
             const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
 
             if (canSee) {
-                // CHASE
                 this.targetX = player.x;
                 this.targetY = player.y;
                 this.patrolTimer = 0;
             } else {
-                // PATROL (Wander)
                 if (this.targetX === null || this.hasReachedTarget()) {
                     this.pickRandomPatrolPoint();
                 }
@@ -79,10 +81,9 @@ class Entity {
 
     pickRandomPatrolPoint() {
         this.patrolTimer++;
-        if (this.patrolTimer < 50) return; // Wait a bit
-        // Pick random spot within map limits (approx 3000x2000)
-        this.targetX = Math.random() * 3000;
-        this.targetY = Math.random() * 2000;
+        if (this.patrolTimer < 50) return;
+        this.targetX = Math.random() * (this.game.mapWidth || 2000);
+        this.targetY = Math.random() * (this.game.mapHeight || 1500);
         this.patrolTimer = 0;
     }
 
@@ -107,7 +108,7 @@ class Entity {
         for (let w of this.game.walls) {
             if (newX < w.x + w.w && newX + this.w > w.x &&
                 newY < w.y + w.h && newY + this.h > w.y) {
-                return true;
+                return true; // Hit Wall OR Water
             }
         }
         return false;
@@ -117,10 +118,9 @@ class Entity {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
-        // Visibility / Hiding
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.5; // Ghost mode for player
-            else return; // AI is invisible in bush
+            if (this.isPlayer) ctx.globalAlpha = 0.5;
+            else return; 
         } else {
             ctx.globalAlpha = 1.0;
         }
@@ -131,11 +131,18 @@ class Entity {
         ctx.ellipse(screenX + 20, screenY + 40, 15, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Icon
-        ctx.fillStyle = '#fff'; 
-        ctx.font = '40px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.data.icon, screenX + 20, screenY + 35);
+        // Icon/Image
+        let charName = this.data.name.toLowerCase(); 
+        let img = IMAGES[charName] || IMAGES['shelly']; 
+
+        if (img) {
+            ctx.drawImage(img, screenX, screenY, 40, 40);
+        } else {
+            ctx.fillStyle = '#fff'; 
+            ctx.font = '40px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(this.data.icon, screenX + 20, screenY + 35);
+        }
         
         // Health Bar
         ctx.globalAlpha = 1.0; 
@@ -146,15 +153,13 @@ class Entity {
     }
 }
 
-// --- GAME ENGINE ---
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.canvas.width = CONFIG.CANVAS_W;
         this.canvas.height = CONFIG.CANVAS_H;
-        
-        this.state = 'MENU';
+        this.state = 'LOADING';
         this.selectedBrawler = null;
         this.mode = 'showdown';
         this.keys = {};
@@ -162,19 +167,41 @@ class Game {
         this.walls = [];
         this.bushes = [];
         this.camera = { x: 0, y: 0 };
+        this.mapWidth = 2000;
+        this.mapHeight = 1500;
         
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
     }
 
     init() {
+        console.log("ENGINE LINKED TO MAPS.JS");
+        this.loadAssets().then(() => {
+            this.setupMenu();
+        });
+    }
+
+    loadAssets() {
+        return new Promise((resolve) => {
+            let loadedCount = 0;
+            const total = Object.keys(ASSETS).length;
+            if (total === 0) resolve();
+
+            for (let key in ASSETS) {
+                const img = new Image();
+                img.src = ASSETS[key];
+                img.onload = () => { IMAGES[key] = img; loadedCount++; if (loadedCount === total) resolve(); };
+                img.onerror = () => { loadedCount++; if (loadedCount === total) resolve(); };
+            }
+        });
+    }
+
+    setupMenu() {
+        this.state = 'MENU';
         const btnSolo = document.getElementById('btn-showdown');
-        const btn3v3 = document.getElementById('btn-knockout');
         const playBtn = document.getElementById('play-btn');
 
         if (btnSolo) btnSolo.onclick = () => this.openMenu('showdown');
-        if (btn3v3) btn3v3.onclick = () => this.openMenu('knockout');
-
         if (playBtn) {
             playBtn.removeAttribute('disabled');
             playBtn.onclick = () => { if (this.selectedBrawler) this.startMatch(); };
@@ -195,7 +222,12 @@ class Game {
         BRAWLERS.forEach(b => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<div style="font-size:40px;">${b.icon}</div><div>${b.name}</div>`;
+            let charName = b.name.toLowerCase();
+            let imgHTML = IMAGES[charName] 
+                ? `<img src="${ASSETS[charName]}" style="width:50px;">` 
+                : `<div style="font-size:40px;">${b.icon}</div>`;
+
+            card.innerHTML = `${imgHTML}<div>${b.name}</div>`;
             card.onclick = () => {
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
@@ -210,9 +242,8 @@ class Game {
     startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
-        
-        const mapData = (this.mode === 'showdown') ? MAP_SKULL_CREEK : MAP_OUT_OPEN;
-        this.loadMap(mapData);
+        // 3. USE THE IMPORTED MAP
+        this.loadMap(MAP_SKULL_CREEK);
         this.loop();
     }
 
@@ -221,7 +252,9 @@ class Game {
         this.bushes = [];
         this.entities = [];
         
-        if (!ascii) ascii = ["################", "#P............X#", "################"];
+        if (!ascii) return;
+        this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
+        this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
 
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
@@ -233,6 +266,8 @@ class Game {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
                 } else if (tile === 'X') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
+                } else if (tile === 'W') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'water' });
                 } else if (tile === 'B') {
                     this.bushes.push({ x, y });
                 } else if (tile === 'P') {
@@ -242,43 +277,37 @@ class Game {
             }
         }
         
-        // Spawn 3 Bots
         for(let i=0; i<3; i++) {
-            let enemy = new Entity(BRAWLERS[0], 1000, 500 + (i*200), false, this);
+            let enemy = new Entity(BRAWLERS[0], this.mapWidth - 200, 200 + (i*200), false, this);
             this.entities.push(enemy);
         }
     }
 
-   updateCamera() {
+    updateCamera() {
         if (!this.player) return;
-
-        // --- TWEAK THIS NUMBER ---
-        // (CONFIG.CANVAS_W / 2) is 800.
-        // If camera is too far right, try subtracting 900 or 950.
-        // If camera is too far left, try subtracting 700.
-        
-        this.camera.x = this.player.x - 550; // Changed from (CONFIG.CANVAS_W / 2)
-        
+        // CAMERA OFFSET: Change 750 if you need to shift the view left/right
+        this.camera.x = this.player.x - 750; 
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
-    // --- TEXTURE RENDERERS ---
-    
+
+    // --- TEXTURES (Main handles drawing) ---
     drawWall(x, y) {
-        // 1. Side Face (Darker)
-        this.ctx.fillStyle = '#145a32'; 
-        this.ctx.fillRect(x, y + 20, 50, 30);
-        // 2. Top Face (Lighter)
-        this.ctx.fillStyle = '#27ae60'; 
-        this.ctx.fillRect(x, y, 50, 45); 
-        // 3. Highlight
-        this.ctx.fillStyle = '#2ecc71';
-        this.ctx.fillRect(x, y, 50, 5);
+        this.ctx.fillStyle = '#145a32'; this.ctx.fillRect(x, y + 20, 50, 30);
+        this.ctx.fillStyle = '#27ae60'; this.ctx.fillRect(x, y, 50, 45); 
+        this.ctx.fillStyle = '#2ecc71'; this.ctx.fillRect(x, y, 50, 5);
+    }
+
+    drawWater(x, y) {
+        this.ctx.fillStyle = '#2980b9'; // Deep Blue
+        this.ctx.fillRect(x, y, 50, 50);
+        this.ctx.fillStyle = '#5dade2'; // Light Blue Ripple
+        this.ctx.fillRect(x + 10, y + 10, 30, 5);
+        this.ctx.fillRect(x + 20, y + 25, 20, 5);
     }
 
     drawBush(x, y) {
         this.ctx.fillStyle = '#2ecc71'; 
         this.ctx.beginPath();
-        // 5 overlapping circles for "Cloud" look
         this.ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
         this.ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
         this.ctx.arc(x + 40, y + 10, 20, 0, Math.PI * 2);
@@ -293,11 +322,12 @@ class Game {
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // 1. Draw Floor (Dark Blue with Grid)
-        this.ctx.fillStyle = '#212f3c'; 
+        // DRAW FLOOR (Desert Theme)
+        this.ctx.fillStyle = '#d38c5e'; 
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        this.ctx.strokeStyle = '#2c3e50';
+        // Grid
+        this.ctx.strokeStyle = '#c47c4e';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
         const offsetX = -this.camera.x % 50;
@@ -306,31 +336,40 @@ class Game {
         for (let y = offsetY; y < this.canvas.height; y += 50) { this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); }
         this.ctx.stroke();
 
-        // 2. Draw Walls & Boxes (offset by camera)
+        // DRAW OBJECTS
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
             
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
                 if (w.type === 'wall') {
-                    this.drawWall(drawX, drawY);
-                } else if (w.type === 'box') {
-                    this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
-                    this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
+                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
+                    else this.drawWall(drawX, drawY);
+                } 
+                else if (w.type === 'box') {
+                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
+                    else {
+                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
+                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
+                    }
+                }
+                else if (w.type === 'water') {
+                    this.drawWater(drawX, drawY);
                 }
             }
         });
 
-        // 3. Draw Bushes (offset by camera)
+        // DRAW BUSHES
         this.bushes.forEach(b => {
             let drawX = b.x - this.camera.x;
             let drawY = b.y - this.camera.y;
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                this.drawBush(drawX, drawY);
+                if (IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
+                else this.drawBush(drawX, drawY);
             }
         });
 
-        // 4. Draw Entities (sorted by Y for depth)
+        // DRAW ENTITIES
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
 
