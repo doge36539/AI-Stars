@@ -1,16 +1,10 @@
-alert("FATAL ERROR: " + msg + "\nIn file: " + url + "\nOn line: " + line);
-};
-
-// --- 2. BULLETPROOF IMPORTS ---
-// We use the singular 'brawler.js' because that's what your folder shows.
+// js/main.js
+// We use "./data/..." to tell the script to look in the same folder it is in
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
-export const CONFIG = {
-    CANVAS_W: 1600,
-    CANVAS_H: 900,
-    TILE_SIZE: 50
-};
+// Add this IMMEDIATELY after the imports to see if they worked
+alert("Data Loaded Successfully!");
 
 // ... (Keep the Entity and Game classes I gave you in the previous message) ...
 
