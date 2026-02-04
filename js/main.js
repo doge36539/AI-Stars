@@ -396,25 +396,43 @@ drawWall(x, y) {
         this.ctx.fill();
     }
 
-    loop() {
+   loop() {
         if (this.state !== 'GAME') return;
 
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // DRAW FLOOR (Desert Theme)
-        this.ctx.fillStyle = '#d38c5e'; 
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // --- NEW CODE START: UPDATE BULLETS ---
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            let p = this.projectiles[i];
+            p.update(); // Move the bullet
+            
+            // Remove if dead
+            if (!p.active) {
+                this.projectiles.splice(i, 1);
+            }
+        }
+        // --- NEW CODE END ---
+
+        // ... (Keep your existing Drawing code for floors/walls) ...
+
+        // ...
         
-        // Grid
-        this.ctx.strokeStyle = '#c47c4e';
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        const offsetX = -this.camera.x % 50;
-        const offsetY = -this.camera.y % 50;
-        for (let x = offsetX; x < this.canvas.width; x += 50) { this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.canvas.height); }
-        for (let y = offsetY; y < this.canvas.height; y += 50) { this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); }
-        this.ctx.stroke();
+        // --- DRAW BULLETS (Put this AFTER drawing walls/entities) ---
+        this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
+        
+        // --- OPTIONAL: DRAW AIM LINE (So you see where you are shooting) ---
+        if (this.player) {
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.player.x + 20 - this.camera.x, this.player.y + 20 - this.camera.y);
+            this.ctx.lineTo(this.mouseX, this.mouseY);
+            this.ctx.stroke();
+        }
+
+        requestAnimationFrame(() => this.loop());
+    }
 
         // DRAW OBJECTS
         this.walls.forEach(w => {
