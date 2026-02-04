@@ -195,15 +195,6 @@ class Game {
                 performAttack(this.player, this, this.mouseX, this.mouseY);
             }
         });
-        
-        checkWallCollision(x, y) {
-        for (let w of this.walls) {
-            // Simple box collision check
-            if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
-                return true; // Hit a wall!
-            }
-        }
-        return false;
     }
 
     init() {
