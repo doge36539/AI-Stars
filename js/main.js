@@ -300,11 +300,12 @@ loadMap(originalAscii) {
         }
     }
 
-    updateCamera() {
+   updateCamera() {
         if (!this.player) return;
-        // CAMERA OFFSET: Change 750 if you need to shift the view left/right
-        this.camera.x = this.player.x - 750; 
-        this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
+
+        // 1. Calculate where the camera WANTS to be (Centered on Player)
+        let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
+        let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
 
         // 2. Define the Limits (The hard edges of the map)
         // The camera can't go further right than (Map Width - Screen Width)
