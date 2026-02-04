@@ -49,4 +49,9 @@ export const BRAWLERS = [
       atk: { dmg: 640, count: 3, range: 520, spread: 0.3, reload: 50, type: 'poison' },
       sup: { type: 'crow_jump', dmg: 640, range: 450, charge: 150 },
       desc: "Poisons enemies. Super jumps (launches/lands daggers)." },
+
+        { id: 9, icon: '🐦', name: "CROW", hp: 4800, speed: 3.6, rarity: 'legendary',
+      atk: { dmg: 640, count: 3, range: 520, spread: 0.3, reload: 50, type: 'poison' },
+      sup: { type: 'crow_jump', dmg: 640, range: 450, charge: 150 },
+      desc: "Poisons enemies. Super jumps (launches/lands daggers)." },
 ];
