@@ -216,24 +216,46 @@ class Game {
         this.renderGrid();
     }
 
-    renderGrid() {
+ renderGrid() {
         const grid = document.getElementById('grid');
         grid.innerHTML = ''; 
+
+        // --- SCROLLBAR SETTINGS ---
+        // This forces the grid to stay inside the box and scroll if needed
+        grid.style.maxHeight = '500px';  // Stop it from getting taller than 500px
+        grid.style.overflowY = 'auto';   // Add a vertical scrollbar
+        grid.style.display = 'flex';     // Ensure cards sit next to each other
+        grid.style.flexWrap = 'wrap';    // Wrap to next line
+        grid.style.justifyContent = 'center';
+
         BRAWLERS.forEach(b => {
             const card = document.createElement('div');
             card.className = 'card';
-            let charName = b.name.toLowerCase();
-            let imgHTML = IMAGES[charName] 
-                ? `<img src="${ASSETS[charName]}" style="width:50px;">` 
+            
+            // Handle Images or Emojis
+            // We use the ID if it exists, otherwise the Name
+            let charID = (b.id !== undefined) ? b.id : b.name.toLowerCase();
+            let imgHTML = IMAGES[charID] 
+                ? `<img src="${ASSETS[charID]}" style="width:50px;">` 
                 : `<div style="font-size:40px;">${b.icon}</div>`;
 
             card.innerHTML = `${imgHTML}<div>${b.name}</div>`;
+            
             card.onclick = () => {
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 this.selectedBrawler = b;
-                document.getElementById('play-btn').disabled = false;
-                document.getElementById('play-btn').style.opacity = "1";
+                
+                const descLabel = document.getElementById('brawler-desc');
+                if(descLabel) descLabel.innerText = b.desc;
+                
+                // Enable Play Button
+                const playBtn = document.getElementById('play-btn');
+                if(playBtn) {
+                    playBtn.disabled = false;
+                    playBtn.style.opacity = "1";
+                    playBtn.style.cursor = "pointer";
+                }
             };
             grid.appendChild(card);
         });
