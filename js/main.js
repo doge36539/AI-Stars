@@ -1,16 +1,46 @@
 // js/main.js
-import { BRAWLERS } from './data/brawler.js'; 
-import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
+
+// --- 1. DATA (Embedded to prevent loading errors) ---
+const BRAWLERS = [
+    { name: "SHELLY", icon: "🤠", hp: 3800, speed: 6, desc: "Shotgun fighter!" },
+    { name: "COLT", icon: "👮", hp: 2800, speed: 7, desc: "Long range sharpshooter." },
+    { name: "EL PRIMO", icon: "🤼", hp: 5000, speed: 7, desc: "Close range tank." }
+];
+
+// A 60x40 Map (Huge) to force camera scrolling
+const GAME_MAP = [
+    "############################################################",
+    "#..........................................................#",
+    "#......P.....................BBB...........................#",
+    "#............................BBB...........................#",
+    "#...XXXX......BBBB...........BBB...........................#",
+    "#...XXXX......BBBB.........................................#",
+    "#.......................#######............................#",
+    "#.......................#######............................#",
+    "#.......BBBBBB.............................................#",
+    "#.......BBBBBB.............................................#",
+    "#.......BBBBBB...........XXXXX..........BBBBBBBB...........#",
+    "#........................XXXXX..........BBBBBBBB...........#",
+    "#.......................................BBBBBBBB...........#",
+    "#..........................................................#",
+    "#...######.......BBBBBB.........BBBBBB.......######........#",
+    "#...######.......BBBBBB.........BBBBBB.......######........#",
+    "#..........................................................#",
+    "#..........................................................#",
+    "#.........XXXX...........................XXXX..............#",
+    "#.........XXXX...........................XXXX..............#",
+    "#..........................................................#",
+    "############################################################"
+];
 
 const CONFIG = {
     TILE_SIZE: 50,
     CANVAS_W: 1600,
     CANVAS_H: 900,
-    AI_SIGHT_RANGE: 500,
-    AI_BUSH_SIGHT: 100
+    AI_SIGHT_RANGE: 600
 };
 
-// --- ENTITY CLASS ---
+// --- 2. ENTITY CLASS (Player & AI) ---
 class Entity {
     constructor(data, x, y, isPlayer, game) {
         this.data = data;
@@ -20,11 +50,11 @@ class Entity {
         this.h = 40;
         this.isPlayer = isPlayer;
         this.game = game;
-        this.hp = data.hp || 4000;
-        this.maxHp = data.hp || 4000;
-        this.speed = isPlayer ? (data.speed || 6) : 3.5; 
+        this.hp = data.hp;
+        this.maxHp = data.hp;
+        this.speed = isPlayer ? data.speed : 3.5; 
         
-        // AI Stats
+        // State
         this.inBush = false;
         this.targetX = null;
         this.targetY = null;
@@ -42,16 +72,19 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // AI LOGIC
+            // AI Logic
             const player = this.game.player;
             const dist = Math.hypot(player.x - this.x, player.y - this.y);
-            const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < CONFIG.AI_BUSH_SIGHT);
+            
+            // Can I see the player? (Only if close OR player not in bush)
+            const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
 
             if (canSee) {
                 this.targetX = player.x;
                 this.targetY = player.y;
                 this.patrolTimer = 0;
             } else {
+                // Patrol Logic
                 if (this.targetX === null || this.hasReachedTarget()) {
                     this.pickRandomPatrolPoint();
                 }
@@ -69,8 +102,7 @@ class Entity {
 
     hasReachedTarget() {
         if (this.targetX === null) return true;
-        const dist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
-        return dist < 50;
+        return Math.hypot(this.targetX - this.x, this.targetY - this.y) < 50;
     }
 
     pickRandomPatrolPoint() {
@@ -85,9 +117,7 @@ class Entity {
         const cx = this.x + 20;
         const cy = this.y + 20;
         this.inBush = false;
-        // Check center point against bush coordinates
         for (let b of this.game.bushes) {
-            // Simple box check
             if (cx > b.x && cx < b.x + 50 && cy > b.y && cy < b.y + 50) {
                 this.inBush = true;
                 break;
@@ -116,8 +146,8 @@ class Entity {
 
         // Visual Hiding Logic
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.5; // You become ghost
-            else return; // Enemies are TOTALLY INVISIBLE in bush (unless close logic handled elsewhere)
+            if (this.isPlayer) ctx.globalAlpha = 0.5; // Player semi-transparent
+            else return; // AI totally invisible in bush
         } else {
             ctx.globalAlpha = 1.0;
         }
@@ -129,7 +159,6 @@ class Entity {
         ctx.fill();
 
         // Icon
-        ctx.globalAlpha = (this.inBush && this.isPlayer) ? 0.5 : 1.0;
         ctx.fillStyle = '#fff'; 
         ctx.font = '40px serif';
         ctx.textAlign = 'center';
@@ -144,7 +173,7 @@ class Entity {
     }
 }
 
-// --- GAME ENGINE ---
+// --- 3. GAME ENGINE ---
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -164,6 +193,9 @@ class Game {
     }
 
     init() {
+        // ALERT TO PROVE IT UPDATED
+        console.log("UPDATED VERSION LOADED"); 
+
         const btnSolo = document.getElementById('btn-showdown');
         const playBtn = document.getElementById('play-btn');
         if (btnSolo) btnSolo.onclick = () => this.openMenu();
@@ -201,7 +233,7 @@ class Game {
     startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
-        this.loadMap(MAP_SKULL_CREEK);
+        this.loadMap(GAME_MAP);
         this.loop();
     }
 
@@ -210,8 +242,6 @@ class Game {
         this.bushes = [];
         this.entities = [];
         
-        if (!ascii) ascii = ["################", "#P............X#", "################"];
-
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
                 let x = c * CONFIG.TILE_SIZE;
@@ -239,53 +269,19 @@ class Game {
 
     updateCamera() {
         if (!this.player) return;
+        // CENTER THE CAMERA
         this.camera.x = this.player.x - (CONFIG.CANVAS_W / 2);
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
 
-    // --- NEW VISUAL DRAWING FUNCTIONS ---
-    drawWall(ctx, x, y) {
-        // 1. Side Face (Darker) - Gives Height
-        ctx.fillStyle = '#145a32'; 
-        ctx.fillRect(x, y + 20, 50, 30);
-        
-        // 2. Top Face (Lighter)
-        ctx.fillStyle = '#27ae60'; 
-        ctx.fillRect(x, y, 50, 45); // Overlap slightly to look connected
-        
-        // 3. Highlight (Detail)
-        ctx.fillStyle = '#2ecc71';
-        ctx.fillRect(x, y, 50, 5);
-    }
-
-    drawBox(ctx, x, y) {
-        // 1. Box Body
-        ctx.fillStyle = '#d35400';
-        ctx.fillRect(x + 5, y + 10, 40, 35);
-        
-        // 2. Box Top
-        ctx.fillStyle = '#e67e22';
-        ctx.fillRect(x + 5, y + 5, 40, 10);
-        
-        // 3. Icon
-        ctx.fillStyle = '#f1c40f';
-        ctx.font = "20px Arial";
-        ctx.fillText("⚡", x + 25, y + 35);
-    }
-
+    // --- SMOOTH BUSH DRAWING ---
     drawBush(ctx, x, y) {
-        // Draw 5 overlapping circles to make it look like a cloud
         ctx.fillStyle = '#2ecc71'; 
         ctx.beginPath();
-        
-        // Center
+        // Overlapping circles for "Round" look
         ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
-        // Corners (Randomize slightly for organic look)
         ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
-        ctx.arc(x + 40, y + 10, 20, 0, Math.PI * 2);
-        ctx.arc(x + 10, y + 40, 20, 0, Math.PI * 2);
         ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
-        
         ctx.fill();
     }
 
@@ -295,33 +291,38 @@ class Game {
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // 1. DRAW BACKGROUND (Subtle Grid)
-        this.ctx.fillStyle = '#212f3c'; // Dark Blue Floor
+        // Background
+        this.ctx.fillStyle = '#212f3c'; 
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Grid Lines
+        // Grid
         this.ctx.strokeStyle = '#2c3e50';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
-        // Calculate grid offset based on camera to make it scroll
         const offsetX = -this.camera.x % 50;
         const offsetY = -this.camera.y % 50;
         for (let x = offsetX; x < this.canvas.width; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, this.canvas.height); }
         for (let y = offsetY; y < this.canvas.height; y += 50) { ctx.moveTo(0, y); ctx.lineTo(this.canvas.width, y); }
         this.ctx.stroke();
 
-        // 2. DRAW WALLS & BOXES
+        // Draw Walls & Boxes
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
             
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (w.type === 'wall') this.drawWall(this.ctx, drawX, drawY);
-                else if (w.type === 'box') this.drawBox(this.ctx, drawX, drawY);
+                if (w.type === 'wall') {
+                     // 3D Wall Effect
+                    ctx.fillStyle = '#145a32'; ctx.fillRect(drawX, drawY + 20, 50, 30);
+                    ctx.fillStyle = '#27ae60'; ctx.fillRect(drawX, drawY, 50, 45);
+                } else if (w.type === 'box') {
+                    ctx.fillStyle = '#d35400'; ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
+                    ctx.fillStyle = '#e67e22'; ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
+                }
             }
         });
 
-        // 3. DRAW BUSHES (Floor Layer)
+        // Draw Bushes
         this.bushes.forEach(b => {
             let drawX = b.x - this.camera.x;
             let drawY = b.y - this.camera.y;
@@ -330,7 +331,7 @@ class Game {
             }
         });
 
-        // 4. DRAW ENTITIES
+        // Draw Entities
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
 
@@ -339,4 +340,5 @@ class Game {
 }
 
 const game = new Game();
+const ctx = game.ctx; // Helper for draw functions
 window.onload = () => game.init();
