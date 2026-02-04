@@ -17,19 +17,78 @@ export class Game {
         
         this.state = 'MENU';
         this.mode = 'showdown';
+        this.selectedBrawler = null; // Track selection
         this.camera = { x: 0, y: 0 };
         this.frameCount = 0;
     }
 
-    // SUB: INIT
     init() {
         this.setupEventListeners();
-        // Trigger the menu grid rendering
         this.renderMenuGrid();
     }
 
-    // SUB: START GAME LOGIC
+    // --- BUTTON AND MOUSE LOGIC ---
+    setupEventListeners() {
+        // Mode Buttons
+        document.getElementById('btn-showdown').onclick = () => {
+            this.mode = 'showdown';
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-select').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-knockout').onclick = () => {
+            this.mode = 'knockout';
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-select').classList.remove('hidden');
+        };
+
+        // Play Button
+        document.getElementById('play-btn').onclick = () => {
+            if (this.selectedBrawler) {
+                this.start(this.selectedBrawler);
+            }
+        };
+
+        // Canvas Shooting (Optional: simple version)
+        this.canvas.onmousedown = () => {
+            if (this.state === 'GAME' && this.player) this.player.tryShoot();
+        };
+    }
+
+    // --- CHARACTER SELECT GRID ---
+    renderMenuGrid() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = ''; // Clear old content
+
+        this.brawlersData.forEach(b => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="emoji-preview">${b.icon}</div>
+                <div style="color:white; font-size:0.8vw; font-weight:bold; margin-top:5px;">${b.name}</div>
+            `;
+
+            card.onclick = () => {
+                // UI Highlight
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                
+                // Logic Set
+                this.selectedBrawler = b;
+                document.getElementById('play-btn').disabled = false;
+                document.getElementById('play-btn').style.opacity = "1";
+                document.getElementById('brawler-desc').innerText = b.desc;
+            };
+
+            grid.appendChild(card);
+        });
+    }
+
     start(selectedBrawler) {
+        // Hide UI for gameplay
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('hud').style.display = 'block';
+
         this.state = 'GAME';
         this.entities = [];
         this.bullets = [];
@@ -39,20 +98,18 @@ export class Game {
         const currentMap = this.mode === 'showdown' ? this.mapData.showdown : this.mapData.knockout;
         this.loadMap(currentMap);
 
-        // Spawn Player
         const player = new Entity(selectedBrawler, 0, 0, 0, true, this);
         this.spawnEntity(player, 0);
         this.entities.push(player);
         this.player = player;
 
-        // Spawn Bots based on mode
         this.spawnBots();
     }
 
+    // ... Rest of your loadMap, update, and draw functions remain the same
     loadMap(asciiMap) {
         this.mapW = asciiMap[0].length * CONFIG.TILE_SIZE;
         this.mapH = asciiMap.length * CONFIG.TILE_SIZE;
-
         for (let r = 0; r < asciiMap.length; r++) {
             for (let c = 0; c < asciiMap[0].length; c++) {
                 let x = c * CONFIG.TILE_SIZE;
@@ -85,20 +142,14 @@ export class Game {
         }
     }
 
-    // SUB: MAIN GAME LOOP
     update() {
         if (this.state !== 'GAME') return;
         this.frameCount++;
-
-        // Camera following player
         this.camera.x += (this.player.x - this.canvas.width / 2 - this.camera.x) * 0.1;
         this.camera.y += (this.player.y - this.canvas.height / 2 - this.camera.y) * 0.1;
-
         this.entities.forEach(e => e.update());
         this.bullets.forEach(b => b.update());
         this.particles.forEach(p => p.update());
-
-        // Cleanup
         this.entities = this.entities.filter(e => e.hp > 0);
         this.bullets = this.bullets.filter(b => b.active);
         this.particles = this.particles.filter(p => p.life > 0);
@@ -109,24 +160,11 @@ export class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
         this.ctx.translate(-this.camera.x, -this.camera.y);
-
-        // Draw Map Elements
         this.bushes.forEach(b => { this.ctx.fillStyle = '#27ae60'; this.ctx.fillRect(b.x, b.y, b.w + 1, b.h + 1); });
         this.walls.forEach(w => { this.ctx.fillStyle = '#7f8c8d'; this.ctx.fillRect(w.x, w.y, w.w, w.h); });
-
-        // Draw entities and bullets
         this.entities.forEach(e => e.draw(this.ctx));
         this.bullets.forEach(b => b.draw(this.ctx, this.player.team));
         this.particles.forEach(p => p.draw(this.ctx));
-
         this.ctx.restore();
-    }
-
-    setupEventListeners() {
-        // Implementation of key/mouse listeners
-    }
-
-    renderMenuGrid() {
-        // Logic to build the brawler select screen
     }
 }
