@@ -1,6 +1,7 @@
 // js/main.js
 import { BRAWLERS } from './data/brawlers.js';
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
+import { Brawler } from './classes/brawler.js';
 
 export const CONFIG = {
     CANVAS_W: 1600,
@@ -8,43 +9,15 @@ export const CONFIG = {
     TILE_SIZE: 50
 };
 
-// --- CLASS: THE PLAYER/BOT ---
-class Entity {
-    constructor(data, x, y, team, isPlayer, gameInstance) {
-        this.data = data;
-        this.x = x; this.y = y;
-        this.team = team;
-        this.isPlayer = isPlayer;
-        this.game = gameInstance;
-        this.hp = data.hp;
-        this.maxHp = data.hp;
-        this.vx = 0; this.vy = 0;
-    }
+// --- GET HTML ELEMENTS ---
+const screenHome = document.getElementById('screen-home');
+const screenSelect = document.getElementById('screen-select');
+const btnShowdown = document.getElementById('btn-showdown');
+const btnKnockout = document.getElementById('btn-knockout');
+const grid = document.getElementById('grid');
+const brawlerDesc = document.getElementById('brawler-desc');
+const playBtn = document.getElementById('play-btn');
 
-    update() {
-        if (this.isPlayer) {
-            this.vx = 0; this.vy = 0;
-            if (this.game.keys['w']) this.vy = -this.data.speed;
-            if (this.game.keys['s']) this.vy = this.data.speed;
-            if (this.game.keys['a']) this.vx = -this.data.speed;
-            if (this.game.keys['d']) this.vx = this.data.speed;
-        }
-        this.x += this.vx;
-        this.y += this.vy;
-    }
-
-    draw(ctx) {
-        ctx.font = '40px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.data.icon, this.x, this.y);
-        
-        // Health Bar
-        ctx.fillStyle = 'red';
-        ctx.fillRect(this.x - 30, this.y - 50, 60, 6);
-        ctx.fillStyle = 'lime';
-        ctx.fillRect(this.x - 30, this.y - 50, (this.hp / this.maxHp) * 60, 6);
-    }
-}
 
 // --- CLASS: THE GAME ENGINE ---
 class Game {
@@ -72,22 +45,16 @@ class Game {
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
-        // Link HTML Buttons
-        document.getElementById('btn-showdown').onclick = () => this.openSelect('showdown');
-        document.getElementById('btn-knockout').onclick = () => this.openSelect('knockout');
-        document.getElementById('play-btn').onclick = () => this.startMatch();
-
         this.renderMenuGrid();
     }
 
     openSelect(mode) {
         this.mode = mode;
-        document.getElementById('screen-home').classList.add('hidden');
-        document.getElementById('screen-select').classList.remove('hidden');
+        screenHome.classList.add('hidden');
+        screenSelect.classList.remove('hidden');
     }
 
     renderMenuGrid() {
-        const grid = document.getElementById('grid');
         grid.innerHTML = '';
         this.brawlersData.forEach(b => {
             const card = document.createElement('div');
@@ -97,22 +64,22 @@ class Game {
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 this.selectedBrawler = b;
-                document.getElementById('play-btn').disabled = false;
-                document.getElementById('brawler-desc').innerText = b.desc;
+                playBtn.disabled = false;
+                brawlerDesc.innerText = b.desc;
             };
             grid.appendChild(card);
         });
     }
 
     startMatch() {
-        document.getElementById('screen-select').classList.add('hidden');
+        screenSelect.classList.add('hidden');
         document.getElementById('hud').style.display = 'block';
         this.state = 'GAME';
 
         const map = this.mode === 'showdown' ? this.mapData.showdown : this.mapData.knockout;
         this.loadMap(map);
 
-        this.player = new Entity(this.selectedBrawler, 400, 400, 0, true, this);
+        this.player = new Brawler(this.selectedBrawler, 400, 400, 0, true, this);
         this.entities.push(this.player);
     }
 
@@ -151,6 +118,12 @@ class Game {
 // Start the whole thing
 const game = new Game(BRAWLERS, { showdown: MAP_SKULL_CREEK, knockout: MAP_OUT_OPEN });
 game.init();
+
+// --- LINK HTML BUTTONS ---
+btnShowdown.onclick = () => game.openSelect('showdown');
+btnKnockout.onclick = () => game.openSelect('knockout');
+playBtn.onclick = () => game.startMatch();
+
 
 function mainLoop() {
     game.update();
