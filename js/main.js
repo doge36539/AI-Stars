@@ -193,8 +193,7 @@ class Game {
     }
 
     init() {
-        // ALERT TO PROVE IT UPDATED
-        console.log("UPDATED VERSION LOADED"); 
+        console.log("FIXED VERSION LOADED"); 
 
         const btnSolo = document.getElementById('btn-showdown');
         const playBtn = document.getElementById('play-btn');
@@ -269,16 +268,13 @@ class Game {
 
     updateCamera() {
         if (!this.player) return;
-        // CENTER THE CAMERA
         this.camera.x = this.player.x - (CONFIG.CANVAS_W / 2);
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
 
-    // --- SMOOTH BUSH DRAWING ---
     drawBush(ctx, x, y) {
         ctx.fillStyle = '#2ecc71'; 
         ctx.beginPath();
-        // Overlapping circles for "Round" look
         ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
         ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
         ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
@@ -301,8 +297,8 @@ class Game {
         this.ctx.beginPath();
         const offsetX = -this.camera.x % 50;
         const offsetY = -this.camera.y % 50;
-        for (let x = offsetX; x < this.canvas.width; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, this.canvas.height); }
-        for (let y = offsetY; y < this.canvas.height; y += 50) { ctx.moveTo(0, y); ctx.lineTo(this.canvas.width, y); }
+        for (let x = offsetX; x < this.canvas.width; x += 50) { this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.canvas.height); }
+        for (let y = offsetY; y < this.canvas.height; y += 50) { this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y); }
         this.ctx.stroke();
 
         // Draw Walls & Boxes
@@ -312,12 +308,12 @@ class Game {
             
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
                 if (w.type === 'wall') {
-                     // 3D Wall Effect
-                    ctx.fillStyle = '#145a32'; ctx.fillRect(drawX, drawY + 20, 50, 30);
-                    ctx.fillStyle = '#27ae60'; ctx.fillRect(drawX, drawY, 50, 45);
+                     // FIX: Used this.ctx instead of ctx
+                    this.ctx.fillStyle = '#145a32'; this.ctx.fillRect(drawX, drawY + 20, 50, 30);
+                    this.ctx.fillStyle = '#27ae60'; this.ctx.fillRect(drawX, drawY, 50, 45);
                 } else if (w.type === 'box') {
-                    ctx.fillStyle = '#d35400'; ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
-                    ctx.fillStyle = '#e67e22'; ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
+                    this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
+                    this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
                 }
             }
         });
@@ -340,5 +336,4 @@ class Game {
 }
 
 const game = new Game();
-const ctx = game.ctx; // Helper for draw functions
 window.onload = () => game.init();
