@@ -40,4 +40,8 @@ export const BRAWLERS = [
       atk: { dmg: 640, count: 3, range: 520, spread: 0.3, reload: 50, type: 'poison' },
       sup: { type: 'crow_jump', dmg: 640, range: 450, charge: 150 },
       desc: "Poisons enemies. Super jumps (launches/lands daggers)." }
+     { id: 0, icon: '🔫', name: "SHELLY", hp: 11000, speed: 10, rarity: 'common', 
+      atk: { dmg: 420, count: 5, range: 400, spread: 0.5, reload: 60, type: 'cone' },
+      sup: { dmg: 450, count: 9, range: 450, push: 15, break: true, charge: 100 },
+      desc: "Super destroys walls and knocks enemies back." },  
 ];
