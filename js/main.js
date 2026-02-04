@@ -6,8 +6,8 @@ const CONFIG = {
     TILE_SIZE: 50,
     CANVAS_W: 1600,
     CANVAS_H: 900,
-    AI_SIGHT_RANGE: 500, // AI can only see 10 tiles away
-    AI_BUSH_SIGHT: 100   // AI can only see 2 tiles into bushes
+    AI_SIGHT_RANGE: 500,
+    AI_BUSH_SIGHT: 100
 };
 
 // --- ENTITY CLASS ---
@@ -22,7 +22,7 @@ class Entity {
         this.game = game;
         this.hp = data.hp || 4000;
         this.maxHp = data.hp || 4000;
-        this.speed = isPlayer ? (data.speed || 6) : 3; 
+        this.speed = isPlayer ? (data.speed || 6) : 3.5; 
         
         // AI Stats
         this.inBush = false;
@@ -37,34 +37,26 @@ class Entity {
         let dy = 0;
 
         if (this.isPlayer) {
-            // --- PLAYER CONTROLS ---
             if (this.game.keys['w']) dy = -this.speed;
             if (this.game.keys['s']) dy = this.speed;
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // --- NEW AI LOGIC ---
+            // AI LOGIC
             const player = this.game.player;
             const dist = Math.hypot(player.x - this.x, player.y - this.y);
-            
-            // 1. CHECK VISIBILITY
-            // Can see if: Player is CLOSE enough AND (Player not in bush OR Player is SUPER close)
-            const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && 
-                           (!player.inBush || dist < CONFIG.AI_BUSH_SIGHT);
+            const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < CONFIG.AI_BUSH_SIGHT);
 
             if (canSee) {
-                // CHASE MODE
                 this.targetX = player.x;
                 this.targetY = player.y;
-                this.patrolTimer = 0; // Reset patrol if we see player
+                this.patrolTimer = 0;
             } else {
-                // PATROL MODE (If I have no target, or I reached my target, pick a new random one)
                 if (this.targetX === null || this.hasReachedTarget()) {
                     this.pickRandomPatrolPoint();
                 }
             }
 
-            // Move towards Target (if I have one)
             if (this.targetX !== null) {
                 const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
                 dx = Math.cos(angle) * this.speed;
@@ -78,15 +70,12 @@ class Entity {
     hasReachedTarget() {
         if (this.targetX === null) return true;
         const dist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
-        return dist < 50; // Close enough
+        return dist < 50;
     }
 
     pickRandomPatrolPoint() {
-        // Wait a bit before moving again
         this.patrolTimer++;
-        if (this.patrolTimer < 50) return; // Stand still for 50 frames
-
-        // Pick a random spot on the map
+        if (this.patrolTimer < 50) return;
         this.targetX = Math.random() * 3000;
         this.targetY = Math.random() * 2000;
         this.patrolTimer = 0;
@@ -96,7 +85,9 @@ class Entity {
         const cx = this.x + 20;
         const cy = this.y + 20;
         this.inBush = false;
+        // Check center point against bush coordinates
         for (let b of this.game.bushes) {
+            // Simple box check
             if (cx > b.x && cx < b.x + 50 && cy > b.y && cy < b.y + 50) {
                 this.inBush = true;
                 break;
@@ -120,15 +111,16 @@ class Entity {
     }
 
     draw(ctx, camX, camY) {
-        // DRAW RELATIVE TO CAMERA
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
-        // Opacity: If Player is in bush, go transparent (so you know).
-        // Enemies in bushes should be totally invisible unless close? 
-        // For now, let's make enemies fade too so you can see if they hide.
-        if (this.inBush) ctx.globalAlpha = 0.5;
-        else ctx.globalAlpha = 1.0;
+        // Visual Hiding Logic
+        if (this.inBush) {
+            if (this.isPlayer) ctx.globalAlpha = 0.5; // You become ghost
+            else return; // Enemies are TOTALLY INVISIBLE in bush (unless close logic handled elsewhere)
+        } else {
+            ctx.globalAlpha = 1.0;
+        }
 
         // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -137,23 +129,18 @@ class Entity {
         ctx.fill();
 
         // Icon
+        ctx.globalAlpha = (this.inBush && this.isPlayer) ? 0.5 : 1.0;
         ctx.fillStyle = '#fff'; 
         ctx.font = '40px serif';
         ctx.textAlign = 'center';
         ctx.fillText(this.data.icon, screenX + 20, screenY + 35);
         
-        // Health Bar (Always solid)
+        // Health Bar
         ctx.globalAlpha = 1.0; 
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 5);
         ctx.fillStyle = this.isPlayer ? '#00ff00' : '#ff0000';
         ctx.fillRect(screenX, screenY - 15, (this.hp / this.maxHp) * 40, 5);
-        
-        // DEBUG: Draw Line to target (so you can see AI thinking)
-        if (!this.isPlayer && this.targetX !== null) {
-            // Uncomment next line to see red lines pointing where AI is going
-            // ctx.strokeStyle = 'red'; ctx.beginPath(); ctx.moveTo(screenX+20, screenY+20); ctx.lineTo(this.targetX - camX, this.targetY - camY); ctx.stroke();
-        }
     }
 }
 
@@ -244,7 +231,6 @@ class Game {
             }
         }
         
-        // Spawn AI far away
         for(let i=0; i<3; i++) {
             let enemy = new Entity(BRAWLERS[0], 1000, 500 + (i*200), false, this);
             this.entities.push(enemy);
@@ -253,12 +239,54 @@ class Game {
 
     updateCamera() {
         if (!this.player) return;
-        
-        // 1. Center on player
         this.camera.x = this.player.x - (CONFIG.CANVAS_W / 2);
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
+    }
+
+    // --- NEW VISUAL DRAWING FUNCTIONS ---
+    drawWall(ctx, x, y) {
+        // 1. Side Face (Darker) - Gives Height
+        ctx.fillStyle = '#145a32'; 
+        ctx.fillRect(x, y + 20, 50, 30);
         
-        // 2. Removed Clamping so it ALWAYS follows, even if map is small/weird
+        // 2. Top Face (Lighter)
+        ctx.fillStyle = '#27ae60'; 
+        ctx.fillRect(x, y, 50, 45); // Overlap slightly to look connected
+        
+        // 3. Highlight (Detail)
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(x, y, 50, 5);
+    }
+
+    drawBox(ctx, x, y) {
+        // 1. Box Body
+        ctx.fillStyle = '#d35400';
+        ctx.fillRect(x + 5, y + 10, 40, 35);
+        
+        // 2. Box Top
+        ctx.fillStyle = '#e67e22';
+        ctx.fillRect(x + 5, y + 5, 40, 10);
+        
+        // 3. Icon
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = "20px Arial";
+        ctx.fillText("⚡", x + 25, y + 35);
+    }
+
+    drawBush(ctx, x, y) {
+        // Draw 5 overlapping circles to make it look like a cloud
+        ctx.fillStyle = '#2ecc71'; 
+        ctx.beginPath();
+        
+        // Center
+        ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
+        // Corners (Randomize slightly for organic look)
+        ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
+        ctx.arc(x + 40, y + 10, 20, 0, Math.PI * 2);
+        ctx.arc(x + 10, y + 40, 20, 0, Math.PI * 2);
+        ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
+        
+        ctx.fill();
     }
 
     loop() {
@@ -267,29 +295,42 @@ class Game {
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // CLEAR
-        this.ctx.fillStyle = '#2c3e50';
+        // 1. DRAW BACKGROUND (Subtle Grid)
+        this.ctx.fillStyle = '#212f3c'; // Dark Blue Floor
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Grid Lines
+        this.ctx.strokeStyle = '#2c3e50';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        // Calculate grid offset based on camera to make it scroll
+        const offsetX = -this.camera.x % 50;
+        const offsetY = -this.camera.y % 50;
+        for (let x = offsetX; x < this.canvas.width; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, this.canvas.height); }
+        for (let y = offsetY; y < this.canvas.height; y += 50) { ctx.moveTo(0, y); ctx.lineTo(this.canvas.width, y); }
+        this.ctx.stroke();
 
-        // DRAW WALLS (Adjusted by Camera)
+        // 2. DRAW WALLS & BOXES
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
-            this.ctx.fillStyle = (w.type === 'wall') ? '#27ae60' : '#f39c12';
-            this.ctx.fillRect(drawX, drawY, w.w, w.h);
-            this.ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            this.ctx.strokeRect(drawX, drawY, w.w, w.h);
+            
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                if (w.type === 'wall') this.drawWall(this.ctx, drawX, drawY);
+                else if (w.type === 'box') this.drawBox(this.ctx, drawX, drawY);
+            }
         });
 
-        // DRAW BUSHES (Adjusted by Camera)
-        this.ctx.fillStyle = '#2ecc71';
+        // 3. DRAW BUSHES (Floor Layer)
         this.bushes.forEach(b => {
             let drawX = b.x - this.camera.x;
             let drawY = b.y - this.camera.y;
-            this.ctx.fillRect(drawX, drawY, 50, 50);
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                this.drawBush(this.ctx, drawX, drawY);
+            }
         });
 
-        // DRAW ENTITIES (Adjusted by Camera)
+        // 4. DRAW ENTITIES
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
 
