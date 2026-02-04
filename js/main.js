@@ -257,7 +257,7 @@ class Game {
         // If camera is too far right, try subtracting 900 or 950.
         // If camera is too far left, try subtracting 700.
         
-        this.camera.x = this.player.x - 900; // Changed from (CONFIG.CANVAS_W / 2)
+        this.camera.x = this.player.x - 1000; // Changed from (CONFIG.CANVAS_W / 2)
         
         this.camera.y = this.player.y - (CONFIG.CANVAS_H / 2);
     }
