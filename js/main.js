@@ -1,10 +1,18 @@
-import { BRAWLERS } from './data/brawler.js'; // REMOVED THE 's' TO MATCH YOUR FILE
+alert("FATAL ERROR: " + msg + "\nIn file: " + url + "\nOn line: " + line);
+};
+
+// --- 2. BULLETPROOF IMPORTS ---
+// We use the singular 'brawler.js' because that's what your folder shows.
+import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
+
 export const CONFIG = {
     CANVAS_W: 1600,
     CANVAS_H: 900,
     TILE_SIZE: 50
 };
+
+// ... (Keep the Entity and Game classes I gave you in the previous message) ...
 
 class Entity {
     constructor(data, x, y, team, isPlayer, gameInstance) {
