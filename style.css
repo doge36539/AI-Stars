@@ -1,13 +1,101 @@
-.hidden {
-    display: none !important;
+/* style.css */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #12121c; /* Dark Brawl-style background */
+    font-family: 'Arial Black', sans-serif;
+    overflow: hidden; /* Stops the page from scrolling */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
 
-/* Ensure UI layer doesn't block clicks */
+#game-wrapper {
+    position: relative;
+    width: 1600px;
+    height: 900px;
+    background: #000;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* UI LAYER - This holds the HUD but lets clicks pass through */
 #ui-layer {
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    pointer-events: none;
+    pointer-events: none; /* Clicks go THROUGH this to the game/buttons */
+    z-index: 10;
 }
 
-#hud { display: none; } /* Only show hud during gameplay */
+#hud {
+    display: none; /* Hidden until game starts */
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: auto; /* HUD items themselves are clickable */
+}
+
+/* SCREEN SYSTEM */
+.screen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(18, 18, 28, 0.9);
+    z-index: 20; /* Buttons are on this layer */
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* BUTTONS */
+.btn {
+    padding: 15px 40px;
+    font-size: 24px;
+    border: 4px solid #fff;
+    border-radius: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: transform 0.1s;
+    pointer-events: auto; /* MUST BE CLICKABLE */
+}
+
+.btn:active { transform: scale(0.95); }
+
+.btn-yel { background: linear-gradient(#f1c40f, #f39c12); color: #000; }
+.btn-red { background: linear-gradient(#e74c3c, #c0392b); color: #fff; }
+
+/* BRAWLER GRID */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(5, 120px);
+    gap: 15px;
+    margin: 20px;
+}
+
+.card {
+    background: #2c3e50;
+    border: 3px solid #7f8c8d;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.card.selected { border-color: #f1c40f; background: #34495e; }
+
+.emoji-preview { font-size: 50px; }
