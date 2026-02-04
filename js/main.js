@@ -254,30 +254,29 @@ loadMap(originalAscii) {
         
         if (!originalAscii) return;
 
-        // --- 1. THE AUTO-WRAPPER LOGIC ---
-        // Calculates width of the map and creates a solid "Z" row for top/bottom
+        // 1. ADD BORDERS (The 'Z' Walls)
         const mapW = originalAscii[0].length;
         const borderRow = "Z".repeat(mapW + 2); 
         
-        // Builds a new map: Adds Top Border, Wraps sides with Z, Adds Bottom Border
         let ascii = [];
-        ascii.push(borderRow); 
+        ascii.push(borderRow); // Top Border
         for(let row of originalAscii) {
-            ascii.push("Z" + row + "Z"); 
+            ascii.push("Z" + row + "Z"); // Side Borders
         }
-        ascii.push(borderRow); 
+        ascii.push(borderRow); // Bottom Border
 
-        // --- 2. LOAD THE NEW WRAPPED MAP ---
+        // 2. SAVE THE NEW SIZE (CRITICAL FIX)
+        // We calculate the size based on the NEW 'ascii' array, not the original one.
         this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
         this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
 
+        // 3. GENERATE TILES
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
                 let x = c * CONFIG.TILE_SIZE;
                 let y = r * CONFIG.TILE_SIZE;
                 let tile = ascii[r][c];
 
-                // 'Z' is treated exactly like '#' (Wall)
                 if (tile === '#' || tile === 'Z') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
                 } else if (tile === 'X') {
@@ -293,28 +292,27 @@ loadMap(originalAscii) {
             }
         }
         
-        // Spawn Enemies relative to the new map size
+        // 4. SPAWN ENEMIES
         for(let i=0; i<3; i++) {
             let enemy = new Entity(BRAWLERS[0], this.mapWidth - 300, 300 + (i*200), false, this);
             this.entities.push(enemy);
         }
     }
 
-   updateCamera() {
-        if (!this.player) return;
+updateCamera() {
+        if (!this.player || !this.mapWidth) return;
 
-        // 1. Calculate where the camera WANTS to be (Centered on Player)
+        // 1. Center on Player
+        // Note: Change 750 to 800 for perfect center, or keep 750 if you like the offset
         let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
         let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
 
-        // 2. Define the Limits (The hard edges of the map)
-        // The camera can't go further right than (Map Width - Screen Width)
+        // 2. Calculate the MAX scrolling distance
+        // (Map Width - Screen Width)
         const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
         const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
 
-        // 3. Apply the Clamp
-        // Math.max(0, ...) -> Stops it going past Left/Top (0)
-        // Math.min(..., maxCam) -> Stops it going past Right/Bottom
+        // 3. CLAMP (Stick to edges)
         this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
         this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
     }
