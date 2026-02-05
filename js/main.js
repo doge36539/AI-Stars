@@ -292,24 +292,12 @@ class Game {
 
 setupMenu() {
         this.state = 'MENU';
-        
-        // 1. Find the buttons in your HTML
-        const btnSolo = document.getElementById('btn-showdown'); // The Skull Creek button
-        const btnKnock = document.getElementById('btn-knockout'); // The Out in Open button
+        const btnSolo = document.getElementById('btn-showdown');
 
-        // 2. Tell the Solo button what to do
         if (btnSolo) {
             btnSolo.onclick = () => {
-                console.log("Solo button clicked!"); // Check your console for this!
+                alert("The Button Works!"); // <--- ADD THIS LINE
                 this.openMenu('showdown');
-            };
-        }
-
-        // 3. Tell the Knockout button what to do
-        if (btnKnock) {
-            btnKnock.onclick = () => {
-                console.log("Knockout button clicked!");
-                this.openMenu('knockout');
             };
         }
     }
