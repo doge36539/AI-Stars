@@ -356,7 +356,6 @@ class Game {
 
         this.loop();
     }
-}
 
     loadMap(originalAscii) {
         this.walls = [];
@@ -516,6 +515,7 @@ class Game {
 
         requestAnimationFrame(() => this.loop());
     }
+} // <--- THIS IS THE CLOSING BRACKET FOR CLASS GAME
 
 // Start Game
 const game = new Game();
