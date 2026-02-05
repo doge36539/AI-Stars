@@ -76,7 +76,7 @@ export const BRAWLERS = [
       desc: "Very slow but high damage. Super boosts damage." },
 
     { id: 15, icon: '🌫️', name: "EMZ", hp: 7200, speed: 3.0, rarity: 'common',
-      atk: { dmg: 1000, count: 1, range: 450, width: 100, reload: 55, type: 'cloud' },
+      atk: { dmg: 1000, count: 1, range: 450, reload: 55 },
       sup: { type: 'slow_circle', dmg: 400, range: 400, charge: 140 },
       desc: "Sprays hairspray. Super slows enemies around her." },
 
@@ -104,4 +104,5 @@ export const BRAWLERS = [
       atk: { dmg: 640, count: 5, range: 650, spread: 0.1, reload: 45, bounce: true, type: 'line' },
       sup: { dmg: 640, count: 12, range: 850, bounce: true, charge: 130, type: 'line' },
       desc: "Bullets bounce off walls. Super shoots a long volley." },
+
 ];
