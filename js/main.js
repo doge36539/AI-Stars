@@ -331,14 +331,6 @@ setupMenu() {
         // 3. Load the Brawlers into the grid
         this.renderGrid();
     }
-    openMenu(mode) {
-        this.mode = mode;
-        document.getElementById('screen-home').style.display = 'none';
-        document.getElementById('screen-select').classList.remove('hidden');
-        document.getElementById('screen-select').style.display = 'flex';
-        this.renderGrid();
-    }
-
  renderGrid() {
         const grid = document.getElementById('grid');
         grid.innerHTML = ''; 
