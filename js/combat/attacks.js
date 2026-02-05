@@ -1,33 +1,38 @@
 // js/combat/attacks.js
 
 export function performAttack(player, game, mouseX, mouseY) {
+    // 0. SAFETY & STATE CHECKS
+    if (!player || !player.data) return;
+    if (game.state !== 'GAME') return; // Prevent shooting in menus/pause
+
+    const now = Date.now();
     const data = player.data;
     const stats = data.atk;
 
-    // 1. DYNAMIC RELOAD (Controlled by brawlers.js)
+    // 1. DYNAMIC RELOAD
     // Multiplied by 10 for milliseconds (e.g., 60 reload = 600ms)
     if (player.lastShot && now - player.lastShot < (stats.reload * 10)) return;
+    
     player.lastShot = now;
 
     // 2. ANGLE CALCULATION
+    // Assumes +20 is the center of the player sprite
     const realMouseX = mouseX + game.camera.x;
     const realMouseY = mouseY + game.camera.y;
     const angle = Math.atan2(realMouseY - (player.y + 20), realMouseX - (player.x + 20));
 
     const name = data.name.toUpperCase();
 
-    // 3. THE HAND-CODED LOGIC (With Dynamic Stats)
+    // 3. HAND-CODED LOGIC
     switch (name) {
         /* --- SHOTGUNS --- */
         case 'SHELLY':
-            // We set Speed (12) here, but use stats.dmg/range/count
             spawnPattern(game, player, angle, stats.count, stats.spread, 12, stats.range, stats.dmg, { color: '#e67e22', size: 4 });
             break;
         case 'BULL':
             spawnPattern(game, player, angle, stats.count, stats.spread, 14, stats.range, stats.dmg, { color: '#95a5a6', size: 3 });
             break;
         case 'DARRYL':
-            // Special: Double Burst logic, but uses stats for damage
             spawnBurst(game, player, angle, 2, 150, 13, stats.range, stats.dmg, { color: '#7f8c8d', size: 3, isShotgun: true });
             break;
 
@@ -59,8 +64,12 @@ export function performAttack(player, game, mouseX, mouseY) {
             spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#e74c3c', size: 15, isRect: true });
             break;
         case 'FRANK':
+            // Delay attack (Wind up)
             setTimeout(() => {
-                spawnPattern(game, player, angle, 1, 0, 14, stats.range, stats.dmg, { color: '#8e44ad', size: 25, isRect: true });
+                // Ensure game is still running and player exists
+                if (game.state === 'GAME' && player && !player.dead) {
+                    spawnPattern(game, player, angle, 1, 0, 14, stats.range, stats.dmg, { color: '#8e44ad', size: 25, isRect: true });
+                }
             }, 300);
             break;
         case 'EMZ':
@@ -106,7 +115,7 @@ export function performAttack(player, game, mouseX, mouseY) {
             break;
 
         default:
-            // Fallback that uses stats
+            // Fallback that uses stats from JSON
             spawnPattern(game, player, angle, 1, 0, 12, stats.range || 500, stats.dmg || 100, { color: '#fff' });
             break;
     }
@@ -114,6 +123,7 @@ export function performAttack(player, game, mouseX, mouseY) {
 
 // --- HELPER 1: SPREAD (Shotguns, etc) ---
 function spawnPattern(game, p, angle, count, spread, speed, range, dmg, custom) {
+    // Calculate start angle (centered around the mouse aim)
     const start = angle - (spread / 2);
     const step = count > 1 ? spread / (count - 1) : 0;
     
@@ -134,9 +144,25 @@ function spawnPattern(game, p, angle, count, spread, speed, range, dmg, custom) 
 // --- HELPER 2: BURST (Colt, etc) ---
 function spawnBurst(game, p, angle, count, delay, speed, range, dmg, custom) {
     let fired = 0;
+    
+    // Initial shot
+    fireBurstShot();
+    fired++;
+
+    // Subsequent shots
     const interval = setInterval(() => {
-        if (game.state !== 'GAME') return clearInterval(interval);
+        if (game.state !== 'GAME' || p.dead) {
+            clearInterval(interval);
+            return;
+        }
         
+        fireBurstShot();
+        fired++;
+        
+        if (fired >= count) clearInterval(interval);
+    }, delay);
+
+    function fireBurstShot() {
         // Special logic for Darryl's double-shotgun inside a burst
         if (custom.isShotgun) {
             spawnPattern(game, p, angle, 4, 0.3, speed, range, dmg, custom);
@@ -152,8 +178,5 @@ function spawnBurst(game, p, angle, count, delay, speed, range, dmg, custom) {
                 custom
             ));
         }
-        
-        fired++;
-        if (fired >= count) clearInterval(interval);
-    }, delay);
+    }
 }
