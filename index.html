@@ -8,23 +8,6 @@
 </head>
 <body>
 
-    <div id="debug-console" style="
-        display: none; 
-        position: absolute; 
-        top: 0; left: 0; 
-        width: 100%; height: 50vh; 
-        background: rgba(0,0,0,0.9); 
-        color: #0f0; 
-        font-family: 'Courier New', monospace; 
-        font-size: 14px;
-        overflow-y: scroll; 
-        z-index: 99999;
-        padding: 10px;
-        pointer-events: auto;
-        border-bottom: 2px solid #0f0;">
-        <div>> SYSTEM READY. PRESS ` TO TOGGLE.</div>
-    </div>
-
     <div id="game-wrapper">
         <canvas id="gameCanvas"></canvas>
         
@@ -57,35 +40,72 @@
 
     <script>
         (function() {
-            const debugDiv = document.getElementById('debug-console');
-            const realLog = console.log;
-            const realError = console.error;
+            // 1. Create the Console Box (Hidden by default)
+            let debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-console';
+            Object.assign(debugDiv.style, {
+                position: 'fixed', top: '0', left: '0',
+                width: '100%', height: '50vh', 
+                background: 'rgba(0,0,0,0.95)', color: '#0f0', 
+                zIndex: '999999', overflowY: 'scroll',
+                display: 'none', // Start hidden
+                borderBottom: '2px solid red',
+                fontFamily: 'monospace', fontSize: '12px', padding: '10px'
+            });
+            document.body.appendChild(debugDiv);
 
-            function logToScreen(msg, isError) {
-                const line = document.createElement('div');
-                line.textContent = '> ' + msg;
-                if (isError) line.style.color = '#ff5555';
-                debugDiv.appendChild(line);
-                debugDiv.scrollTop = debugDiv.scrollHeight;
+            // 2. Create the HUGE Red Test Button
+            const btn = document.createElement('button');
+            btn.innerText = '🐞 DEBUG';
+            Object.assign(btn.style, {
+                position: 'fixed', top: '10px', left: '10px',
+                zIndex: '1000000', // Higher than everything!
+                width: '100px', height: '50px',
+                background: 'red', color: 'white', fontWeight: 'bold',
+                border: '2px solid white', borderRadius: '8px'
+            });
+            document.body.appendChild(btn);
+
+            // 3. The Toggle Function
+            function toggle() {
+                if (debugDiv.style.display === 'none') {
+                    debugDiv.style.display = 'block';
+                    console.log("Debug Menu Opened");
+                } else {
+                    debugDiv.style.display = 'none';
+                }
             }
 
+            // 4. Force Click Listeners (Touch + Click)
+            btn.onclick = toggle;
+            btn.ontouchend = function(e) {
+                e.preventDefault(); // Stop ghost clicks on phone
+                toggle();
+            };
+
+            // 5. Hijack Console
+            const oldLog = console.log;
+            const oldErr = console.error;
+
             console.log = function(...args) {
-                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-                logToScreen(msg, false);
-                realLog.apply(console, args);
+                oldLog.apply(console, args);
+                const msg = document.createElement('div');
+                msg.innerText = '> ' + args.join(' ');
+                msg.style.borderBottom = '1px solid #333';
+                debugDiv.appendChild(msg);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
             };
 
             console.error = function(...args) {
-                const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-                logToScreen('ERROR: ' + msg, true);
-                realError.apply(console, args);
+                oldErr.apply(console, args);
+                const msg = document.createElement('div');
+                msg.innerText = 'ERR: ' + args.join(' ');
+                msg.style.color = '#ff5555';
+                debugDiv.appendChild(msg);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
             };
 
-            window.addEventListener('keydown', (e) => {
-                if (e.key === '`' || e.key === '~') {
-                    debugDiv.style.display = (debugDiv.style.display === 'none') ? 'block' : 'none';
-                }
-            });
+            console.log("System Ready. Click the Red Button!");
         })();
     </script>
 
