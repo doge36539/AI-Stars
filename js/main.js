@@ -356,6 +356,7 @@ class Game {
 
         this.loop();
     }
+}
 
     loadMap(originalAscii) {
         this.walls = [];
