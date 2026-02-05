@@ -46,13 +46,15 @@ class Projectile {
     }
 }
 
-// 2. ASSET PATHS (Make sure these images exist or it uses squares)
+// 2. ASSET COLORS (Desert Canyon Theme)
 const ASSETS = {
-    'wall': 'images/wall.png',
-    'bush': 'images/bush.png',
-    'box':  'images/box.png',
-    'water': 'images/water.png'
+    'wall':  '#d35400', // Canyon Orange
+    'bush':  '#2ecc71', // Bright Bush Green
+    'water': '#2980b9', // Deep Blue
+    'box':   '#8e44ad', // Purple (so boxes stand out against orange walls)
+    'floor': '#f3e5ab'  // Sand / Beige
 };
+
 const IMAGES = {};
 
 class Entity {
@@ -85,6 +87,7 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
+            // ... rest of logic
             // AI Logic
             const player = this.game.player;
             const dist = Math.hypot(player.x - this.x, player.y - this.y);
