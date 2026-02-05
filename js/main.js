@@ -175,7 +175,8 @@ class Entity {
         let img = IMAGES[charName] || IMAGES['shelly']; 
 
         if (img) {
-            ctx.drawImage(img, screenX, screenY, 40, 40);
+           ctx.fillStyle = ASSETS[type]; // Uses the colors above
+           ctx.fillRect(x, y, size, size);
         } else {
             ctx.fillStyle = '#fff'; 
             ctx.font = '40px serif';
