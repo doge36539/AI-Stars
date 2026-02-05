@@ -3,10 +3,9 @@ import { performAttack } from './combat/attacks.js';
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
-// 1. DYNAMIC CONFIG (Fits your Chromebook screen perfectly)
+// 1. DYNAMIC CONFIG
 export const CONFIG = {
     TILE_SIZE: 50,
-    // Subtract a little for the browser bars
     CANVAS_W: window.innerWidth, 
     CANVAS_H: window.innerHeight, 
     AI_SIGHT_RANGE: 600
@@ -75,31 +74,29 @@ class Entity {
         this.patrolTimer = 0;
         this.lastMoveX = 1; 
 
-        // --- NEW AMMO & COOLDOWN VARIABLES ---
-        // Defaults: 3 ammo, 1000ms reload, 500ms cooldown
+        // AMMO & COOLDOWN
         const stats = data.atk || {};
         this.maxAmmo = stats.ammo || 3;
         this.currentAmmo = this.maxAmmo;
         this.reloadSpeed = stats.reload || 1000; 
         this.shotCooldown = stats.cd || 500;
         
-        this.reloadTimer = 0;   // Counts up to reloadSpeed
-        this.lastAttackTime = 0; // Timestamp of last shot
+        this.reloadTimer = 0;
+        this.lastAttackTime = 0; 
     }
 
     update() {
         // 1. REGENERATE AMMO
         if (this.currentAmmo < this.maxAmmo) {
-            this.reloadTimer += 16.6; // Add roughly 1 frame of time (60fps)
+            this.reloadTimer += 16.6; 
             if (this.reloadTimer >= this.reloadSpeed) {
                 this.currentAmmo++;
                 this.reloadTimer = 0;
-                // If we are the player, update the UI immediately
                 if (this.isPlayer) this.game.updateAmmoUI(); 
             }
         }
 
-        // 2. EXISTING MOVEMENT LOGIC
+        // 2. MOVEMENT LOGIC
         this.checkBush();
         let dx = 0;
         let dy = 0;
@@ -110,7 +107,6 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // ... (Keep your existing AI logic here) ...
             const player = this.game.player;
             if (player) {
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
@@ -132,11 +128,7 @@ class Entity {
 
         if (dx !== 0 || dy !== 0) this.move(dx, dy);
     }
-    
-    // ... (Keep existing methods: hasReachedTarget, pickRandomPatrolPoint, checkBush, move, checkCollision) ...
-    // NOTE: You don't need to change those methods, just keep them inside the class.
-    
-    // Paste these helpers back in just in case you deleted them:
+
     hasReachedTarget() {
         if (this.targetX === null) return true;
         return Math.hypot(this.targetX - this.x, this.targetY - this.y) < 50;
@@ -179,18 +171,22 @@ class Entity {
     }
 
     draw(ctx, camX, camY) {
-        // (Keep your updated EMOJI draw function here from the previous step)
         let screenX = this.x - camX;
         let screenY = this.y - camY;
+
         ctx.globalAlpha = 1.0; 
         if (this.inBush) {
             if (this.isPlayer) ctx.globalAlpha = 0.6; 
             else return; 
         }
+
+        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        // Emoji
         ctx.fillStyle = '#000000'; 
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
@@ -204,6 +200,8 @@ class Entity {
             ctx.fillText(sprite, screenX + 20, screenY + 25);
         }
         ctx.restore();
+
+        // Health Bar
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 6); 
@@ -217,7 +215,7 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
-        // Fit canvas to screen
+        
         this.canvas.width = CONFIG.CANVAS_W;
         this.canvas.height = CONFIG.CANVAS_H;
         this.state = 'LOADING';
@@ -245,39 +243,29 @@ class Game {
             this.mouseY = e.clientY - rect.top;
         });
 
-// Inside Game constructor...
+        // Mouse Down for Shooting
+        window.addEventListener('mousedown', () => {
+            if (this.state === 'GAME' && this.player) {
+                const now = Date.now();
+                
+                // 1. CHECK COOLDOWN
+                if (now - this.player.lastAttackTime < this.player.shotCooldown) {
+                    return;
+                }
 
-window.addEventListener('mousedown', () => {
-    if (this.state === 'GAME' && this.player) {
-        const now = Date.now();
-        
-        // 1. CHECK COOLDOWN (Did we just shoot?)
-        if (now - this.player.lastAttackTime < this.player.shotCooldown) {
-            console.log("On Cooldown...");
-            return;
-        }
-
-        // 2. CHECK AMMO (Do we have bars?)
-        if (this.player.currentAmmo > 0) {
-            // FIRE!
-            performAttack(this.player, this, this.mouseX, this.mouseY);
-            
-            // Deduct cost
-            this.player.currentAmmo--;
-            this.player.lastAttackTime = now;
-            
-            // Reset reload timer so you don't get a "free" partial reload
-            // (Optional: Brawl Stars pauses reload while firing)
-            this.player.reloadTimer = 0; 
-
-            // Update UI
-            this.updateAmmoUI();
-        } else {
-            console.log("Out of Ammo!");
-            // Optional: Play a "click" sound here
-        }
-    }
-});
+                // 2. CHECK AMMO
+                if (this.player.currentAmmo > 0) {
+                    performAttack(this.player, this, this.mouseX, this.mouseY);
+                    this.player.currentAmmo--;
+                    this.player.lastAttackTime = now;
+                    this.player.reloadTimer = 0; 
+                    this.updateAmmoUI();
+                } else {
+                    console.log("Out of Ammo!");
+                }
+            }
+        });
+    } // <--- THIS WAS THE MISSING BRACKET!
 
     init() {
         console.log("ENGINE LINKED. ASSETS READY.");
@@ -392,7 +380,6 @@ window.addEventListener('mousedown', () => {
         
         if (!originalAscii) return;
 
-        // Borders
         const mapW = originalAscii[0].length;
         const borderRow = "Z".repeat(mapW + 2); 
         
@@ -434,7 +421,6 @@ window.addEventListener('mousedown', () => {
         }
     }
 
-    // *** FIX: STRICT CLAMP ***
     updateCamera() {
         if (!this.player || !this.mapWidth) return;
         
@@ -444,24 +430,21 @@ window.addEventListener('mousedown', () => {
         const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
         const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
 
-        // This ensures that even if the screen is wider than the map, 
-        // we don't crash into negative numbers.
         this.camera.x = Math.max(0, Math.min(targetX, Math.max(0, maxCamX)));
         this.camera.y = Math.max(0, Math.min(targetY, Math.max(0, maxCamY)));
     }
 
-        updateAmmoUI() {
+    updateAmmoUI() {
         if (!this.player) return;
         
-        // Loop through the 3 UI slots (ammo1, ammo2, ammo3)
         for (let i = 1; i <= 3; i++) {
             const el = document.getElementById('ammo' + i);
             if (el) {
                 if (i <= this.player.currentAmmo) {
-                    el.style.backgroundColor = '#e67e22'; // Orange (Filled)
+                    el.style.backgroundColor = '#e67e22'; 
                     el.style.boxShadow = "0 0 5px #e67e22";
                 } else {
-                    el.style.backgroundColor = '#333'; // Dark Grey (Empty)
+                    el.style.backgroundColor = '#333'; 
                     el.style.boxShadow = "none";
                 }
             }
@@ -522,7 +505,6 @@ window.addEventListener('mousedown', () => {
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
-            // Draw slightly outside screen to prevent "pop-in"
             if (drawX > -60 && drawX < CONFIG.CANVAS_W + 60 && drawY > -60 && drawY < CONFIG.CANVAS_H + 60) {
                 if (w.type === 'wall') this.drawWall(drawX, drawY);
                 else if (w.type === 'box') {
