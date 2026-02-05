@@ -371,58 +371,21 @@ setupMenu() {
         });
     }
 
-    startMatch() {
+startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
-        // 3. USE THE IMPORTED MAP
-        this.loadMap(MAP_SKULL_CREEK);
+
+        // Choose map based on the mode selected in the menu
+        if (this.mode === 'knockout') {
+            console.log("Loading: Out in the Open");
+            this.loadMap(MAP_OUT_OPEN);
+        } else {
+            console.log("Loading: Skull Creek");
+            this.loadMap(MAP_SKULL_CREEK);
+        }
+
         this.loop();
     }
-
-loadMap(originalAscii) {
-        this.walls = [];
-        this.bushes = [];
-        this.entities = [];
-        
-        if (!originalAscii) return;
-
-        // 1. ADD BORDERS (The 'Z' Walls)
-        const mapW = originalAscii[0].length;
-        const borderRow = "Z".repeat(mapW + 2); 
-        
-        let ascii = [];
-        ascii.push(borderRow); // Top Border
-        for(let row of originalAscii) {
-            ascii.push("Z" + row + "Z"); // Side Borders
-        }
-        ascii.push(borderRow); // Bottom Border
-
-        // 2. SAVE THE NEW SIZE (CRITICAL FIX)
-        // We calculate the size based on the NEW 'ascii' array, not the original one.
-        this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
-        this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
-
-        // 3. GENERATE TILES
-        for (let r = 0; r < ascii.length; r++) {
-            for (let c = 0; c < ascii[r].length; c++) {
-                let x = c * CONFIG.TILE_SIZE;
-                let y = r * CONFIG.TILE_SIZE;
-                let tile = ascii[r][c];
-
-                if (tile === '#' || tile === 'Z') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
-                } else if (tile === 'X') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
-                } else if (tile === 'W') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'water' });
-                } else if (tile === 'B') {
-                    this.bushes.push({ x, y });
-                } else if (tile === 'P') {
-                    this.player = new Entity(this.selectedBrawler, x, y, true, this);
-                    this.entities.push(this.player);
-                }
-            }
-        }
         
         // 4. SPAWN ENEMIES
         for(let i=0; i<3; i++) {
