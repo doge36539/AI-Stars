@@ -450,6 +450,24 @@ window.addEventListener('mousedown', () => {
         this.camera.y = Math.max(0, Math.min(targetY, Math.max(0, maxCamY)));
     }
 
+        updateAmmoUI() {
+        if (!this.player) return;
+        
+        // Loop through the 3 UI slots (ammo1, ammo2, ammo3)
+        for (let i = 1; i <= 3; i++) {
+            const el = document.getElementById('ammo' + i);
+            if (el) {
+                if (i <= this.player.currentAmmo) {
+                    el.style.backgroundColor = '#e67e22'; // Orange (Filled)
+                    el.style.boxShadow = "0 0 5px #e67e22";
+                } else {
+                    el.style.backgroundColor = '#333'; // Dark Grey (Empty)
+                    el.style.boxShadow = "none";
+                }
+            }
+        }
+    }
+
     drawWall(x, y) {
         this.ctx.fillStyle = '#d35400'; 
         this.ctx.fillRect(x, y, 50, 40);
