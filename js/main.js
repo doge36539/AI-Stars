@@ -245,12 +245,39 @@ class Game {
             this.mouseY = e.clientY - rect.top;
         });
 
-        window.addEventListener('mousedown', () => {
-            if (this.state === 'GAME' && this.player) {
-                performAttack(this.player, this, this.mouseX, this.mouseY);
-            }
-        });
+// Inside Game constructor...
+
+window.addEventListener('mousedown', () => {
+    if (this.state === 'GAME' && this.player) {
+        const now = Date.now();
+        
+        // 1. CHECK COOLDOWN (Did we just shoot?)
+        if (now - this.player.lastAttackTime < this.player.shotCooldown) {
+            console.log("On Cooldown...");
+            return;
+        }
+
+        // 2. CHECK AMMO (Do we have bars?)
+        if (this.player.currentAmmo > 0) {
+            // FIRE!
+            performAttack(this.player, this, this.mouseX, this.mouseY);
+            
+            // Deduct cost
+            this.player.currentAmmo--;
+            this.player.lastAttackTime = now;
+            
+            // Reset reload timer so you don't get a "free" partial reload
+            // (Optional: Brawl Stars pauses reload while firing)
+            this.player.reloadTimer = 0; 
+
+            // Update UI
+            this.updateAmmoUI();
+        } else {
+            console.log("Out of Ammo!");
+            // Optional: Play a "click" sound here
+        }
     }
+});
 
     init() {
         console.log("ENGINE LINKED. ASSETS READY.");
