@@ -36,7 +36,7 @@ export function performAttack(player, game, mouseX, mouseY) {
 
         /* --- SNIPERS --- */
         case 'COLT':
-            spawnBurst(game, player, angle, stats.count, 100, 18, stats.range, stats.dmg, { color: '#ffffff', size: 3 });
+            spawnBurst(game, player, angle, stats.count, 100, 18, stats.range, stats.dmg, { color: '#000000', size: 3 });
             break;
         case 'RICO':
             spawnBurst(game, player, angle, stats.count, 90, 18, stats.range, stats.dmg, { color: '#00ccff', size: 4, bounce: true });
@@ -54,7 +54,7 @@ export function performAttack(player, game, mouseX, mouseY) {
 
         /* --- AREA / SPECIALS --- */
         case 'POCO':
-            spawnPattern(game, player, angle, 5, 0.8, 10, stats.range, stats.dmg, { color: '#9b59b6', size: 12, isRect: true });
+            spawnPattern(game, player, angle, 5, 0.8, 10, stats.range, stats.dmg, { color: '#008000', size: 12, isRect: true });
             break;
         case 'EL PRIMO':
         case 'ROSA':
@@ -62,7 +62,7 @@ export function performAttack(player, game, mouseX, mouseY) {
             break;
         case 'BARLEY':
         case 'DYNAMIKE':
-            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#f1c40f', size: 7, type: 'lob' });
+            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#FF0000', size: 7, type: 'lob' });
             break;
 
         default:
