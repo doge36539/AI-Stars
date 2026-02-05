@@ -2,8 +2,7 @@
 
 export function performAttack(player, game, mouseX, mouseY) {
     const data = player.data;
-    const stats = data.atk; // Pulls the object from brawlers.js
-    const now = Date.now();
+    const stats = data.atk;
 
     // 1. DYNAMIC RELOAD (Controlled by brawlers.js)
     // Multiplied by 10 for milliseconds (e.g., 60 reload = 600ms)
