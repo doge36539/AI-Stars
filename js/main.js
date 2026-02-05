@@ -290,18 +290,34 @@ class Game {
         });
     }
 
-    setupMenu() {
+setupMenu() {
         this.state = 'MENU';
+        // Get the buttons from your HTML
         const btnSolo = document.getElementById('btn-showdown');
+        const btnKnock = document.getElementById('btn-knockout');
         const playBtn = document.getElementById('play-btn');
 
-        if (btnSolo) btnSolo.onclick = () => this.openMenu('showdown');
+        // Link the Solo button
+        if (btnSolo) {
+            btnSolo.onclick = () => this.openMenu('showdown');
+        }
+
+        // Link the Knockout button
+        if (btnKnock) {
+            btnKnock.onclick = () => this.openMenu('knockout');
+        }
+
+        // Link the Play button
         if (playBtn) {
-            playBtn.removeAttribute('disabled');
-            playBtn.onclick = () => { if (this.selectedBrawler) this.startMatch(); };
+            playBtn.onclick = () => {
+                if (this.selectedBrawler) {
+                    this.startMatch();
+                } else {
+                    alert("Select a Brawler first!");
+                }
+            };
         }
     }
-
     openMenu(mode) {
         this.mode = mode;
         document.getElementById('screen-home').style.display = 'none';
