@@ -3,10 +3,12 @@ import { performAttack } from './combat/attacks.js';
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
+// 1. DYNAMIC CONFIG (Fits your Chromebook screen perfectly)
 export const CONFIG = {
     TILE_SIZE: 50,
-    CANVAS_W: 1600,
-    CANVAS_H: 900,
+    // Subtract a little for the browser bars
+    CANVAS_W: window.innerWidth, 
+    CANVAS_H: window.innerHeight, 
     AI_SIGHT_RANGE: 600
 };
 
@@ -43,13 +45,13 @@ class Projectile {
     }
 }
 
-// 2. ASSET COLORS (Desert Canyon Theme)
+// 2. ASSET COLORS
 const ASSETS = {
-    'wall':  '#d35400', // Canyon Orange
-    'bush':  '#2ecc71', // Bright Bush Green
-    'water': '#2980b9', // Deep Blue
-    'box':   '#8e44ad', // Purple
-    'floor': '#f3e5ab'  // Sand / Beige
+    'wall':  '#d35400', 
+    'bush':  '#2ecc71', 
+    'water': '#2980b9', 
+    'box':   '#8e44ad', 
+    'floor': '#f3e5ab'  
 };
 
 const IMAGES = {}; 
@@ -72,7 +74,6 @@ class Entity {
         this.targetY = null;
         this.patrolTimer = 0;
 
-        // NEW: Remember direction for flipping the emoji
         this.lastMoveX = 1; 
     }
 
@@ -140,7 +141,6 @@ class Entity {
     }
 
     move(dx, dy) {
-        // NEW: Track direction
         if (dx !== 0) this.lastMoveX = dx;
 
         if (!this.checkCollision(this.x + dx, this.y)) this.x += dx;
@@ -157,31 +157,25 @@ class Entity {
         return false;
     }
 
-    // --- NEW EMOJI DRAW FUNCTION ---
-   // --- UPDATED DRAW FUNCTION (Fixes Faded Emojis) ---
     draw(ctx, camX, camY) {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
-        // 1. Reset Opacity Default
         ctx.globalAlpha = 1.0; 
 
-        // 2. Handle Bush Hiding
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.6; // Slightly see-through for you
-            else return; // Completely invisible for enemies
+            if (this.isPlayer) ctx.globalAlpha = 0.6; 
+            else return; 
         }
 
-        // 3. Draw Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.2)'; // <-- Low opacity color
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 4. DRAW EMOJI
-        // *** THE FIX: Force color back to Solid Black ***
+        // DRAW EMOJI (Solid Black Color Reset)
         ctx.fillStyle = '#000000'; 
-        
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -197,8 +191,8 @@ class Entity {
         }
         ctx.restore();
 
-        // 5. Draw Health Bar
-        ctx.globalAlpha = 1.0; // Ensure HP bar is always solid
+        // Health Bar
+        ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 6); 
         
@@ -212,6 +206,7 @@ class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        // Fit canvas to screen
         this.canvas.width = CONFIG.CANVAS_W;
         this.canvas.height = CONFIG.CANVAS_H;
         this.state = 'LOADING';
@@ -225,13 +220,11 @@ class Game {
         this.mapWidth = 2000;
         this.mapHeight = 1500;
         
-        // COMBAT
         this.projectiles = []; 
         this.mouseX = 0;
         this.mouseY = 0;
         this.ProjectileClass = Projectile;
         
-        // LISTENERS
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
@@ -271,7 +264,6 @@ class Game {
         const btnSolo = document.getElementById('btn-showdown');
         const btnKnock = document.getElementById('btn-knockout');
         
-        // *** FIX: WIRE UP THE BRAWL BUTTON! ***
         const btnPlay = document.getElementById('play-btn');
         if (btnPlay) {
             btnPlay.onclick = () => {
@@ -310,7 +302,6 @@ class Game {
         const grid = document.getElementById('grid');
         grid.innerHTML = ''; 
 
-        // Style Fixes
         grid.style.maxHeight = '500px'; 
         grid.style.overflowY = 'auto';   
         grid.style.display = 'flex';     
@@ -321,7 +312,6 @@ class Game {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // Emoji Icon since no images
             let imgHTML = `<div style="font-size:40px;">${b.icon || '❓'}</div>`;
             card.innerHTML = `${imgHTML}<div>${b.name}</div>`;
             
@@ -333,7 +323,6 @@ class Game {
                 const descLabel = document.getElementById('brawler-desc');
                 if(descLabel) descLabel.innerText = b.desc;
                 
-                // Visual feedback for button
                 const playBtn = document.getElementById('play-btn');
                 if(playBtn) {
                     playBtn.disabled = false;
@@ -346,15 +335,12 @@ class Game {
     }
 
     startMatch() {
-        console.log("START MATCH CLICKED");
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
 
         if (this.mode === 'knockout') {
-            console.log("Loading: Out in the Open");
             this.loadMap(MAP_OUT_OPEN);
         } else {
-            console.log("Loading: Skull Creek");
             this.loadMap(MAP_SKULL_CREEK);
         }
 
@@ -410,32 +396,27 @@ class Game {
         }
     }
 
-updateCamera() {
-    if (!this.player || !this.mapWidth) return;
+    // *** FIX: STRICT CLAMP ***
+    updateCamera() {
+        if (!this.player || !this.mapWidth) return;
+        
+        let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
+        let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
 
-    // 1. THESE TWO LINES CREATE THE "LOCK"
-    // It says: "Camera Top-Left" = "Player Position" - "Half Screen Size"
-    let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
-    let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
+        const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
+        const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
 
-    // 2. This part keeps the camera from going outside the map borders
-    const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
-    const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
-    
-    this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
-    this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
-}
+        // This ensures that even if the screen is wider than the map, 
+        // we don't crash into negative numbers.
+        this.camera.x = Math.max(0, Math.min(targetX, Math.max(0, maxCamX)));
+        this.camera.y = Math.max(0, Math.min(targetY, Math.max(0, maxCamY)));
+    }
 
-    // --- NEW HIGH-QUALITY TEXTURES ---
-    
     drawWall(x, y) {
-        // 1. Top Face
         this.ctx.fillStyle = '#d35400'; 
         this.ctx.fillRect(x, y, 50, 40);
-        // 2. Front Face (Shadow)
         this.ctx.fillStyle = '#a04000'; 
         this.ctx.fillRect(x, y + 40, 50, 10);
-        // 3. Cracks/Details
         this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
         this.ctx.fillRect(x + 10, y + 10, 5, 20);
         this.ctx.fillRect(x + 30, y + 5, 10, 5);
@@ -444,7 +425,6 @@ updateCamera() {
     drawWater(x, y) {
         this.ctx.fillStyle = '#2980b9';
         this.ctx.fillRect(x, y, 50, 50);
-        // Reflection
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.fillRect(x + 10, y + 15, 25, 4);
         this.ctx.fillRect(x + 5, y + 35, 10, 4);
@@ -452,13 +432,11 @@ updateCamera() {
 
     drawBush(x, y) {
         this.ctx.fillStyle = '#2ecc71'; 
-        // Draw 3 circles for "fluffy" look
         this.ctx.beginPath();
         this.ctx.arc(x + 15, y + 15, 20, 0, Math.PI * 2);
         this.ctx.arc(x + 35, y + 15, 20, 0, Math.PI * 2);
         this.ctx.arc(x + 25, y + 35, 18, 0, Math.PI * 2);
         this.ctx.fill();
-        // Center detail
         this.ctx.fillStyle = '#27ae60';
         this.ctx.beginPath();
         this.ctx.arc(x + 25, y + 25, 10, 0, Math.PI * 2);
@@ -468,8 +446,6 @@ updateCamera() {
     loop() {
         if (this.state !== 'GAME') return;
 
-        // *** FIX: RESET ALPHA EVERY FRAME ***
-        // This ensures the map doesn't get stuck being transparent
         this.ctx.globalAlpha = 1.0; 
 
         // 1. CLEAR SCREEN (Sand Floor)
@@ -490,7 +466,8 @@ updateCamera() {
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+            // Draw slightly outside screen to prevent "pop-in"
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W + 60 && drawY > -60 && drawY < CONFIG.CANVAS_H + 60) {
                 if (w.type === 'wall') this.drawWall(drawX, drawY);
                 else if (w.type === 'box') {
                     this.ctx.fillStyle = ASSETS.box; 
@@ -513,7 +490,6 @@ updateCamera() {
 
         // 5. AIM LINE
         if (this.player) {
-            // Reset alpha again just to be safe for the line
             this.ctx.globalAlpha = 1.0; 
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -525,9 +501,8 @@ updateCamera() {
 
         requestAnimationFrame(() => this.loop());
     }
-} // <--- THIS IS THE CLOSING BRACKET FOR CLASS GAME
+}
 
-// Start Game
 const game = new Game();
-window.gameInstance = game; // Make it accessible for Debug Console
+window.gameInstance = game; 
 window.onload = () => game.init();
