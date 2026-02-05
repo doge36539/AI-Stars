@@ -73,11 +73,33 @@ class Entity {
         this.targetX = null;
         this.targetY = null;
         this.patrolTimer = 0;
-
         this.lastMoveX = 1; 
+
+        // --- NEW AMMO & COOLDOWN VARIABLES ---
+        // Defaults: 3 ammo, 1000ms reload, 500ms cooldown
+        const stats = data.atk || {};
+        this.maxAmmo = stats.ammo || 3;
+        this.currentAmmo = this.maxAmmo;
+        this.reloadSpeed = stats.reload || 1000; 
+        this.shotCooldown = stats.cd || 500;
+        
+        this.reloadTimer = 0;   // Counts up to reloadSpeed
+        this.lastAttackTime = 0; // Timestamp of last shot
     }
 
     update() {
+        // 1. REGENERATE AMMO
+        if (this.currentAmmo < this.maxAmmo) {
+            this.reloadTimer += 16.6; // Add roughly 1 frame of time (60fps)
+            if (this.reloadTimer >= this.reloadSpeed) {
+                this.currentAmmo++;
+                this.reloadTimer = 0;
+                // If we are the player, update the UI immediately
+                if (this.isPlayer) this.game.updateAmmoUI(); 
+            }
+        }
+
+        // 2. EXISTING MOVEMENT LOGIC
         this.checkBush();
         let dx = 0;
         let dy = 0;
@@ -88,22 +110,18 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // AI Logic
+            // ... (Keep your existing AI logic here) ...
             const player = this.game.player;
             if (player) {
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
-
                 if (canSee) {
                     this.targetX = player.x;
                     this.targetY = player.y;
                     this.patrolTimer = 0;
-                } else {
-                    if (this.targetX === null || this.hasReachedTarget()) {
-                        this.pickRandomPatrolPoint();
-                    }
+                } else if (this.targetX === null || this.hasReachedTarget()) {
+                    this.pickRandomPatrolPoint();
                 }
-
                 if (this.targetX !== null) {
                     const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
                     dx = Math.cos(angle) * this.speed;
@@ -114,7 +132,11 @@ class Entity {
 
         if (dx !== 0 || dy !== 0) this.move(dx, dy);
     }
-
+    
+    // ... (Keep existing methods: hasReachedTarget, pickRandomPatrolPoint, checkBush, move, checkCollision) ...
+    // NOTE: You don't need to change those methods, just keep them inside the class.
+    
+    // Paste these helpers back in just in case you deleted them:
     hasReachedTarget() {
         if (this.targetX === null) return true;
         return Math.hypot(this.targetX - this.x, this.targetY - this.y) < 50;
@@ -142,7 +164,6 @@ class Entity {
 
     move(dx, dy) {
         if (dx !== 0) this.lastMoveX = dx;
-
         if (!this.checkCollision(this.x + dx, this.y)) this.x += dx;
         if (!this.checkCollision(this.x, this.y + dy)) this.y += dy;
     }
@@ -158,30 +179,23 @@ class Entity {
     }
 
     draw(ctx, camX, camY) {
+        // (Keep your updated EMOJI draw function here from the previous step)
         let screenX = this.x - camX;
         let screenY = this.y - camY;
-
         ctx.globalAlpha = 1.0; 
-
         if (this.inBush) {
             if (this.isPlayer) ctx.globalAlpha = 0.6; 
             else return; 
         }
-
-        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
-
-        // DRAW EMOJI (Solid Black Color Reset)
         ctx.fillStyle = '#000000'; 
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
         let sprite = this.data.icon || '😐'; 
-        
         ctx.save();
         if (this.lastMoveX < 0) { 
             ctx.scale(-1, 1); 
@@ -190,12 +204,9 @@ class Entity {
             ctx.fillText(sprite, screenX + 20, screenY + 25);
         }
         ctx.restore();
-
-        // Health Bar
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 6); 
-        
         ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; 
         let hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
