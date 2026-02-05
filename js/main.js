@@ -458,6 +458,10 @@ class Game {
     loop() {
         if (this.state !== 'GAME') return;
 
+        // *** FIX: RESET ALPHA EVERY FRAME ***
+        // This ensures the map doesn't get stuck being transparent
+        this.ctx.globalAlpha = 1.0; 
+
         // 1. CLEAR SCREEN (Sand Floor)
         this.ctx.fillStyle = ASSETS.floor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -499,6 +503,8 @@ class Game {
 
         // 5. AIM LINE
         if (this.player) {
+            // Reset alpha again just to be safe for the line
+            this.ctx.globalAlpha = 1.0; 
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
@@ -509,7 +515,6 @@ class Game {
 
         requestAnimationFrame(() => this.loop());
     }
-}
 
 // Start Game
 const game = new Game();
