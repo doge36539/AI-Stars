@@ -410,15 +410,21 @@ class Game {
         }
     }
 
-    updateCamera() {
-        if (!this.player || !this.mapWidth) return;
-        let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
-        let targetY = this.player.y - (CONFIG.CANVAS_W / 2);
-        const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
-        const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
-        this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
-        this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
-    }
+updateCamera() {
+    if (!this.player || !this.mapWidth) return;
+
+    // 1. THESE TWO LINES CREATE THE "LOCK"
+    // It says: "Camera Top-Left" = "Player Position" - "Half Screen Size"
+    let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
+    let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
+
+    // 2. This part keeps the camera from going outside the map borders
+    const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
+    const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
+    
+    this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
+    this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
+}
 
     // --- NEW HIGH-QUALITY TEXTURES ---
     
