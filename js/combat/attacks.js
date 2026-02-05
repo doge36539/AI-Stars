@@ -1,124 +1,130 @@
-import { Projectile } from './projectiles.js';
+// js/combat/attacks.js
 
 export function performAttack(player, game, mouseX, mouseY) {
     const data = player.data;
     const now = Date.now();
-    const atkStats = data.atk;
+    const stats = data.atk;
 
-    // 1. GLOBAL RELOAD CHECK
-    // (We multiply reload by 10 to make the numbers from your list feel right in ms)
-    if (player.lastShot && now - player.lastShot < (atkStats.reload * 10)) return;
+    // 1. DYNAMIC RELOAD
+    if (player.lastShot && now - player.lastShot < (stats.reload * 10)) return;
     player.lastShot = now;
 
-    // 2. CALCULATE ANGLE
+    // 2. ANGLE CALCULATION
     const realMouseX = mouseX + game.camera.x;
     const realMouseY = mouseY + game.camera.y;
-    const angle = Math.atan2(realMouseY - player.y, realMouseX - player.x);
+    const angle = Math.atan2(realMouseY - (player.y + 20), realMouseX - (player.x + 20));
 
-    // 3. ROUTER: WHICH BRAWLER IS THIS?
-    // We switch based on the Name (or ID) to run custom code.
     const name = data.name.toUpperCase();
 
+    // 3. THE FULL ROSTER SWITCH
     switch (name) {
         case 'SHELLY':
-            attackShelly(player, game, angle);
-            break;
-        case 'COLT':
-            attackColt(player, game, angle);
+            spawnPattern(game, player, angle, stats.count, stats.spread, 12, stats.range, stats.dmg, { color: '#e67e22', size: 4 });
             break;
         case 'NITA':
-            attackNita(player, game, angle);
+            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#e74c3c', size: stats.width / 4, isRect: true });
             break;
-        case 'EL PRIMO':
-            attackElPrimo(player, game, angle);
+        case 'COLT':
+            spawnBurst(game, player, angle, stats.count, 100, 18, stats.range, stats.dmg, { color: '#ffffff', size: 3 });
             break;
-        case 'POCO':
-            attackPoco(player, game, angle);
+        case 'BULL':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 14, stats.range, stats.dmg, { color: '#95a5a6', size: 3 });
+            break;
+        case 'PIPER':
+            spawnPattern(game, player, angle, 1, 0, 24, stats.range, stats.dmg, { color: '#5dade2', size: 3 });
+            break;
+        case 'FRANK':
+            setTimeout(() => {
+                spawnPattern(game, player, angle, 1, 0, 14, stats.range, stats.dmg, { color: '#8e44ad', size: stats.width / 3, isRect: true });
+            }, 300); 
+            break;
+        case 'MORTIS':
+            spawnPattern(game, player, angle, 1, 0, 20, stats.range, stats.dmg, { color: 'rgba(155, 89, 182, 0.4)', size: 20, isRect: true });
+            break;
+        case 'TARA':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 15, stats.range, stats.dmg, { color: '#9b59b6', size: 4, type: 'pierce' });
             break;
         case 'SPIKE':
-            attackSpike(player, game, angle);
+            spawnPattern(game, player, angle, 1, 0, 11, stats.range, stats.dmg, { color: '#2ecc71', size: 12, type: 'spike' });
+            break;
+        case 'CROW':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 16, stats.range, stats.dmg, { color: '#2ecc71', size: 3, type: 'poison' });
+            break;
+        case 'LEON':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 16, stats.range, stats.dmg, { color: '#27ae60', size: 4 });
+            break;
+        case 'DYNAMIKE':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 10, stats.range, stats.dmg, { color: '#f39c12', size: 8, type: 'lob' });
+            break;
+        case 'BO':
+            spawnBurst(game, player, angle, stats.count, 150, 15, stats.range, stats.dmg, { color: '#d35400', size: 4 });
+            break;
+        case 'TICK':
+            spawnPattern(game, player, angle, stats.count, stats.spread, 9, stats.range, stats.dmg, { color: '#34495e', size: 6, type: 'lob_mines' });
+            break;
+        case '8-BIT':
+            spawnBurst(game, player, angle, stats.count, 80, 17, stats.range, stats.dmg, { color: '#ecf0f1', size: 3 });
+            break;
+        case 'EMZ':
+            spawnPattern(game, player, angle, 1, 0, 8, stats.range, stats.dmg, { color: '#d980fa', size: stats.width / 4, isRect: true, type: 'cloud' });
+            break;
+        case 'EL PRIMO':
+        case 'ROSA':
+            spawnBurst(game, player, angle, stats.count, 100, 18, stats.range, stats.dmg, { color: '#3498db', size: 10 });
+            break;
+        case 'BARLEY':
+            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#f1c40f', size: 7, type: 'puddle' });
+            break;
+        case 'POCO':
+            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#9b59b6', size: stats.width / 4, isRect: true });
+            break;
+        case 'RICO':
+            spawnBurst(game, player, angle, stats.count, 90, 18, stats.range, stats.dmg, { color: '#00ccff', size: 4, bounce: true });
             break;
         default:
-            // Default "Pea Shooter" for anyone we haven't coded yet
-            spawnBullet(game, player, angle, 10, 600, 500); 
+            spawnPattern(game, player, angle, 1, 0, 12, 500, 500, { color: '#fff' });
             break;
     }
 }
 
-// ==========================================
-//    CUSTOM ATTACK FUNCTIONS
-// ==========================================
-
-function attackShelly(p, game, angle) {
-    // Shotgun: 5 pellets, spread out
-    const count = 5;
-    const spread = 0.5; // Width of the cone
-    const startAngle = angle - (spread / 2);
-    const step = spread / (count - 1);
-
+// --- HELPER: SPREAD PATTERNS ---
+function spawnPattern(game, p, angle, count, spread, speed, range, dmg, custom) {
+    const start = angle - (spread / 2);
+    const step = count > 1 ? spread / (count - 1) : 0;
     for (let i = 0; i < count; i++) {
-        spawnBullet(game, p, startAngle + (step * i), 12, 400, 420);
+        // USE THE BRIDGE HERE: game.ProjectileClass
+        game.projectiles.push(new game.ProjectileClass(
+            p.x + 20, 
+            p.y + 20, 
+            start + (step * i), 
+            speed, 
+            range, 
+            dmg, 
+            p, 
+            custom
+        ));
     }
 }
 
-function attackColt(p, game, angle) {
-    // BURST FIRE: Shoots 6 bullets one after another
-    let shotsFired = 0;
-    const totalShots = 6;
-    
-    // We create a mini-timer to fire bullets every 100ms
+// --- HELPER: BURST FIRE ---
+function spawnBurst(game, p, angle, count, delay, speed, range, dmg, custom) {
+    let fired = 0;
     const interval = setInterval(() => {
-        spawnBullet(game, p, angle, 14, 750, 540); // Fast speed (14), Long range (750)
-        shotsFired++;
-        if (shotsFired >= totalShots) clearInterval(interval);
-    }, 100); 
-}
-
-function attackNita(p, game, angle) {
-    // Shockwave: Pierces enemies (We need to add 'pierce' type support later)
-    // For now, it's a medium range, slightly wide bullet
-    spawnBullet(game, p, angle, 10, 450, 800, 'pierce');
-}
-
-function attackElPrimo(p, game, angle) {
-    // Punch: Very short range, multiple "pellets" to simulate a fist width
-    spawnBullet(game, p, angle, 15, 150, 300);
-    spawnBullet(game, p, angle + 0.1, 15, 150, 300);
-    spawnBullet(game, p, angle - 0.1, 15, 150, 300);
-}
-
-function attackPoco(p, game, angle) {
-    // Music Wave: Fires MANY bullets in a wide arc to look like a wave
-    const count = 10;
-    const spread = 1.0; // Very wide
-    const startAngle = angle - (spread / 2);
-    const step = spread / (count - 1);
-
-    for (let i = 0; i < count; i++) {
-        spawnBullet(game, p, startAngle + (step * i), 9, 650, 700);
-    }
-}
-
-function attackSpike(p, game, angle) {
-    // Cactus Grenade: Shoots one ball, when it dies, it explodes
-    // (We will need to add the explosion logic in projectiles.js later)
-    spawnBullet(game, p, angle, 10, 500, 600, 'spike_grenade');
-}
-
-// ==========================================
-//    HELPER: SPAWN BULLET
-// ==========================================
-function spawnBullet(game, owner, angle, speed, range, dmg, type='normal') {
-    // This calls the Projectile class you made in step 2
-    let bullet = new Projectile(
-        game,
-        owner.x + 20, // Start Center X
-        owner.y + 20, // Start Center Y
-        angle,
-        speed,
-        range,
-        dmg,
-        type
-    );
-    game.projectiles.push(bullet);
+        if (game.state !== 'GAME') return clearInterval(interval);
+        
+        // USE THE BRIDGE HERE: game.ProjectileClass
+        game.projectiles.push(new game.ProjectileClass(
+            p.x + 20, 
+            p.y + 20, 
+            angle, 
+            speed, 
+            range, 
+            dmg, 
+            p, 
+            custom
+        ));
+        
+        fired++;
+        if (fired >= count) clearInterval(interval);
+    }, delay);
 }
