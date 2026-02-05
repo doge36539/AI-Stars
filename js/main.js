@@ -262,7 +262,7 @@ class Game {
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
 
-        // 4. DRAW AIM LINE
+        // 4. 
         if (this.player) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -526,7 +526,7 @@ drawWall(x, y) {
         
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
 
-        // 6. DRAW AIM LINE
+        // 6. 
         if (this.player) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -537,45 +537,6 @@ drawWall(x, y) {
         }
 
         // 7. REPEAT
-        requestAnimationFrame(() => this.loop());
-    }
-        // DRAW OBJECTS
-        this.walls.forEach(w => {
-            let drawX = w.x - this.camera.x;
-            let drawY = w.y - this.camera.y;
-            
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (w.type === 'wall') {
-                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
-                    else this.drawWall(drawX, drawY);
-                } 
-                else if (w.type === 'box') {
-                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
-                    else {
-                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
-                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
-                    }
-                }
-                else if (w.type === 'water') {
-                    this.drawWater(drawX, drawY);
-                }
-            }
-        });
-
-        // DRAW BUSHES
-        this.bushes.forEach(b => {
-            let drawX = b.x - this.camera.x;
-            let drawY = b.y - this.camera.y;
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
-                else this.drawBush(drawX, drawY);
-            }
-        });
-
-        // DRAW ENTITIES
-        this.entities.sort((a, b) => a.y - b.y);
-        this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
-
         requestAnimationFrame(() => this.loop());
     }
 }
