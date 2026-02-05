@@ -293,30 +293,33 @@ class Game {
 setupMenu() {
         this.state = 'MENU';
         const btnSolo = document.getElementById('btn-showdown');
+        const btnKnock = document.getElementById('btn-knockout');
 
         if (btnSolo) {
             btnSolo.onclick = () => {
-                alert("The Button Works!"); // <--- ADD THIS LINE
-                this.openMenu('showdown');
+                this.mode = 'showdown';
+                this.openMenu();
+            };
+        }
+
+        if (btnKnock) {
+            btnKnock.onclick = () => {
+                this.mode = 'knockout';
+                this.openMenu();
             };
         }
     }
 
-    openMenu(mode) {
-        this.mode = mode;
-        
+    openMenu() {
         // 1. Hide the Home Screen
-        const home = document.getElementById('screen-home');
-        if (home) home.style.display = 'none';
-
+        document.getElementById('screen-home').style.display = 'none';
+        
         // 2. Show the Selection Screen
-        const select = document.getElementById('screen-select');
-        if (select) {
-            select.classList.remove('hidden'); // Remove the hidden class
-            select.style.display = 'flex';     // Force it to show as flex
-        }
-
-        // 3. Load the Brawlers into the grid
+        const selectScreen = document.getElementById('screen-select');
+        selectScreen.classList.remove('hidden');
+        selectScreen.style.display = 'flex';
+        
+        // 3. Draw the Brawler list
         this.renderGrid();
     }
  renderGrid() {
