@@ -83,12 +83,20 @@ class Entity {
         
         this.reloadTimer = 0;
         this.lastAttackTime = 0; 
+
+        // NEW: Track real time for updates
+        this.lastUpdate = Date.now();
     }
 
     update() {
-        // 1. REGENERATE AMMO
+        // Calculate how much time passed since last frame (Delta Time)
+        const now = Date.now();
+        const dt = now - this.lastUpdate;
+        this.lastUpdate = now;
+
+        // 1. REGENERATE AMMO (Using Real Time)
         if (this.currentAmmo < this.maxAmmo) {
-            this.reloadTimer += 16.6; 
+            this.reloadTimer += dt; // Add actual milliseconds passed
             if (this.reloadTimer >= this.reloadSpeed) {
                 this.currentAmmo++;
                 this.reloadTimer = 0;
@@ -129,6 +137,8 @@ class Entity {
         if (dx !== 0 || dy !== 0) this.move(dx, dy);
     }
 
+    // ... Keep the rest of your methods (hasReachedTarget, checkBush, draw, etc.) exactly the same ...
+    
     hasReachedTarget() {
         if (this.targetX === null) return true;
         return Math.hypot(this.targetX - this.x, this.targetY - this.y) < 50;
