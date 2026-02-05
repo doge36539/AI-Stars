@@ -10,6 +10,42 @@ export const CONFIG = {
     CANVAS_H: 900,
     AI_SIGHT_RANGE: 600
 };
+
+// --- PROJECTILE ENGINE ---
+class Projectile {
+    constructor(x, y, angle, speed, range, dmg, owner, custom = {}) {
+        this.x = x;
+        this.y = y;
+        this.angle = angle;
+        this.speed = speed;
+        this.range = range;
+        this.dmg = dmg;
+        this.owner = owner;
+        this.active = true;
+        this.distanceTravelled = 0;
+
+        // Apply hand-coded ID transfers (color, size, etc) from attacks.js
+        Object.assign(this, custom);
+    }
+
+    update() {
+        if (!this.active) return;
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.distanceTravelled += this.speed;
+        if (this.distanceTravelled >= this.range) this.active = false;
+        if (this.owner.game.checkWallCollision(this.x, this.y)) this.active = false;
+    }
+
+    draw(ctx, camX, camY) {
+        ctx.fillStyle = this.color || '#f1c40f';
+        let size = this.size || 5;
+        ctx.beginPath();
+        ctx.arc(this.x - camX, this.y - camY, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // 2. ASSET PATHS (Make sure these images exist or it uses squares)
 const ASSETS = {
     'wall': 'images/wall.png',
