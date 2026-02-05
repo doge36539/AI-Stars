@@ -158,32 +158,36 @@ class Entity {
     }
 
     // --- NEW EMOJI DRAW FUNCTION ---
+   // --- UPDATED DRAW FUNCTION (Fixes Faded Emojis) ---
     draw(ctx, camX, camY) {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
-        // 1. Hide if in bush (unless it's you)
+        // 1. Reset Opacity Default
+        ctx.globalAlpha = 1.0; 
+
+        // 2. Handle Bush Hiding
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.6; 
-            else return; // Invisible for enemies
-        } else {
-            ctx.globalAlpha = 1.0;
+            if (this.isPlayer) ctx.globalAlpha = 0.6; // Slightly see-through for you
+            else return; // Completely invisible for enemies
         }
 
-        // 2. Draw Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        // 3. Draw Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; // <-- Low opacity color
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. DRAW EMOJI
+        // 4. DRAW EMOJI
+        // *** THE FIX: Force color back to Solid Black ***
+        ctx.fillStyle = '#000000'; 
+        
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
         let sprite = this.data.icon || '😐'; 
         
-        // Flip sprite if moving left
         ctx.save();
         if (this.lastMoveX < 0) { 
             ctx.scale(-1, 1); 
@@ -193,12 +197,12 @@ class Entity {
         }
         ctx.restore();
 
-        // 4. Draw Health Bar
-        ctx.globalAlpha = 1.0;
+        // 5. Draw Health Bar
+        ctx.globalAlpha = 1.0; // Ensure HP bar is always solid
         ctx.fillStyle = '#333';
-        ctx.fillRect(screenX, screenY - 15, 40, 6); // Background
+        ctx.fillRect(screenX, screenY - 15, 40, 6); 
         
-        ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; // Green vs Red
+        ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; 
         let hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
     }
