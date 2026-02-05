@@ -386,126 +386,125 @@ startMatch() {
 
         this.loop();
     }
+
+    loadMap(originalAscii) {
+        this.walls = [];
+        this.bushes = [];
+        this.entities = [];
         
-        // 4. SPAWN ENEMIES
+        if (!originalAscii) return;
+
+        // 1. ADD BORDERS (The 'Z' Walls)
+        const mapW = originalAscii[0].length;
+        const borderRow = "Z".repeat(mapW + 2); 
+        
+        let ascii = [];
+        ascii.push(borderRow); // Top Border
+        for(let row of originalAscii) {
+            ascii.push("Z" + row + "Z"); // Side Borders
+        }
+        ascii.push(borderRow); // Bottom Border
+
+        // 2. SAVE THE NEW SIZE
+        this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
+        this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
+
+        // 3. GENERATE TILES
+        for (let r = 0; r < ascii.length; r++) {
+            for (let c = 0; c < ascii[r].length; c++) {
+                let x = c * CONFIG.TILE_SIZE;
+                let y = r * CONFIG.TILE_SIZE;
+                let tile = ascii[r][c];
+
+                if (tile === '#' || tile === 'Z') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
+                } else if (tile === 'X') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
+                } else if (tile === 'W') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'water' });
+                } else if (tile === 'B') {
+                    this.bushes.push({ x, y });
+                } else if (tile === 'P') {
+                    this.player = new Entity(this.selectedBrawler, x, y, true, this);
+                    this.entities.push(this.player);
+                }
+            }
+        }
+        
+        // 4. SPAWN ENEMIES (Now inside the function where it belongs!)
         for(let i=0; i<3; i++) {
             let enemy = new Entity(BRAWLERS[0], this.mapWidth - 300, 300 + (i*200), false, this);
             this.entities.push(enemy);
         }
-    }
+    } // This closes loadMap
 
-updateCamera() {
+    updateCamera() {
         if (!this.player || !this.mapWidth) return;
-
-        // 1. Center on Player
-        // Note: Change 750 to 800 for perfect center, or keep 750 if you like the offset
         let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
         let targetY = this.player.y - (CONFIG.CANVAS_H / 2);
-
-        // 2. Calculate the MAX scrolling distance
-        // (Map Width - Screen Width)
         const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
         const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
-
-        // 3. CLAMP (Stick to edges)
         this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
         this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
     }
 
-    // --- TEXTURES (Main handles drawing) ---
-drawWall(x, y) {
-        // 1. Side Face (Dark Rust/Shadow)
+    drawWall(x, y) {
         this.ctx.fillStyle = '#a04000'; 
         this.ctx.fillRect(x, y + 20, 50, 30);
-        
-        // 2. Top Face (Desert Orange)
         this.ctx.fillStyle = '#e67e22'; 
         this.ctx.fillRect(x, y, 50, 45); 
-        
-        // 3. Highlight (Bright Sun)
         this.ctx.fillStyle = '#f39c12';
         this.ctx.fillRect(x, y, 50, 5);
     }
 
     drawWater(x, y) {
-        this.ctx.fillStyle = '#2980b9'; // Deep Blue
+        this.ctx.fillStyle = '#2980b9';
         this.ctx.fillRect(x, y, 50, 50);
-        this.ctx.fillStyle = '#5dade2'; // Light Blue Ripple
-        this.ctx.fillRect(x + 10, y + 10, 30, 5);
-        this.ctx.fillRect(x + 20, y + 25, 20, 5);
     }
 
     drawBush(x, y) {
         this.ctx.fillStyle = '#2ecc71'; 
         this.ctx.beginPath();
         this.ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
-        this.ctx.arc(x + 10, y + 10, 20, 0, Math.PI * 2);
-        this.ctx.arc(x + 40, y + 10, 20, 0, Math.PI * 2);
-        this.ctx.arc(x + 10, y + 40, 20, 0, Math.PI * 2);
-        this.ctx.arc(x + 40, y + 40, 20, 0, Math.PI * 2);
         this.ctx.fill();
     }
 
-   loop() {
+    loop() {
         if (this.state !== 'GAME') return;
 
-        // 1. UPDATE EVERYTHING
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // Update Projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             let p = this.projectiles[i];
             p.update();
-            if (!p.active) {
-                this.projectiles.splice(i, 1);
-            }
+            if (!p.active) this.projectiles.splice(i, 1);
         }
 
-        // 2. CLEAR SCREEN
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // 3. DRAW WALLS & WATER
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
-            
-            // Only draw if on screen
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (w.type === 'wall') {
-                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
-                    else this.drawWall(drawX, drawY);
-                } 
+                if (w.type === 'wall') this.drawWall(drawX, drawY);
                 else if (w.type === 'box') {
-                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
-                    else {
-                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
-                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
-                    }
+                    this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
                 }
-                else if (w.type === 'water') {
-                    this.drawWater(drawX, drawY);
-                }
+                else if (w.type === 'water') this.drawWater(drawX, drawY);
             }
         });
 
-        // 4. DRAW BUSHES
         this.bushes.forEach(b => {
             let drawX = b.x - this.camera.x;
             let drawY = b.y - this.camera.y;
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
-                else this.drawBush(drawX, drawY);
-            }
+            this.drawBush(drawX, drawY);
         });
 
-        // 5. DRAW PLAYERS & PROJECTILES
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
-        
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
 
-        // 6. 
         if (this.player) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -515,10 +514,9 @@ drawWall(x, y) {
             this.ctx.stroke();
         }
 
-        // 7. REPEAT
         requestAnimationFrame(() => this.loop());
     }
-}
+} // <--- This closes the Game class
 
 const game = new Game();
 window.onload = () => game.init();
