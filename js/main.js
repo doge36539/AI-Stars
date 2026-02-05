@@ -52,7 +52,7 @@ const ASSETS = {
     'floor': '#f3e5ab'  // Sand / Beige
 };
 
-const IMAGES = {}; // Empty because we are using colors now
+const IMAGES = {}; 
 
 class Entity {
     constructor(data, x, y, isPlayer, game) {
@@ -71,6 +71,9 @@ class Entity {
         this.targetX = null;
         this.targetY = null;
         this.patrolTimer = 0;
+
+        // NEW: Remember direction for flipping the emoji
+        this.lastMoveX = 1; 
     }
 
     update() {
@@ -86,7 +89,6 @@ class Entity {
         } else {
             // AI Logic
             const player = this.game.player;
-            // Simple check to prevent crash if player is dead/missing
             if (player) {
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
                 const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
@@ -138,6 +140,9 @@ class Entity {
     }
 
     move(dx, dy) {
+        // NEW: Track direction
+        if (dx !== 0) this.lastMoveX = dx;
+
         if (!this.checkCollision(this.x + dx, this.y)) this.x += dx;
         if (!this.checkCollision(this.x, this.y + dy)) this.y += dy;
     }
@@ -152,6 +157,7 @@ class Entity {
         return false;
     }
 
+    // --- NEW EMOJI DRAW FUNCTION ---
     draw(ctx, camX, camY) {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
@@ -179,8 +185,6 @@ class Entity {
         
         // Flip sprite if moving left
         ctx.save();
-        // Note: Make sure you added 'this.lastMoveX = 1;' to your constructor!
-        // If not, this check just defaults to facing right, which is fine.
         if (this.lastMoveX < 0) { 
             ctx.scale(-1, 1); 
             ctx.fillText(sprite, -(screenX + 20), screenY + 25);
@@ -198,7 +202,8 @@ class Entity {
         let hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
     }
-} // <--- This closing bracket ends the 'Entity' class. IMPORTANT!
+}
+
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -241,7 +246,6 @@ class Game {
 
     init() {
         console.log("ENGINE LINKED. ASSETS READY.");
-        // We skip loadAssets image loading because we use colors now.
         this.setupMenu();
     }
 
@@ -255,7 +259,6 @@ class Game {
     }
 
     loadAssets() {
-        // Disabled image loading to prevent 404s
         return Promise.resolve();
     }
 
@@ -413,24 +416,42 @@ class Game {
         this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
     }
 
-    // DRAW FUNCTIONS FOR MAP
+    // --- NEW HIGH-QUALITY TEXTURES ---
+    
     drawWall(x, y) {
-        this.ctx.fillStyle = ASSETS.wall; 
-        this.ctx.fillRect(x, y, 50, 50);
-        // Detail line
-        this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        // 1. Top Face
+        this.ctx.fillStyle = '#d35400'; 
+        this.ctx.fillRect(x, y, 50, 40);
+        // 2. Front Face (Shadow)
+        this.ctx.fillStyle = '#a04000'; 
         this.ctx.fillRect(x, y + 40, 50, 10);
+        // 3. Cracks/Details
+        this.ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        this.ctx.fillRect(x + 10, y + 10, 5, 20);
+        this.ctx.fillRect(x + 30, y + 5, 10, 5);
     }
 
     drawWater(x, y) {
-        this.ctx.fillStyle = ASSETS.water;
+        this.ctx.fillStyle = '#2980b9';
         this.ctx.fillRect(x, y, 50, 50);
+        // Reflection
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.fillRect(x + 10, y + 15, 25, 4);
+        this.ctx.fillRect(x + 5, y + 35, 10, 4);
     }
 
     drawBush(x, y) {
-        this.ctx.fillStyle = ASSETS.bush; 
+        this.ctx.fillStyle = '#2ecc71'; 
+        // Draw 3 circles for "fluffy" look
         this.ctx.beginPath();
-        this.ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
+        this.ctx.arc(x + 15, y + 15, 20, 0, Math.PI * 2);
+        this.ctx.arc(x + 35, y + 15, 20, 0, Math.PI * 2);
+        this.ctx.arc(x + 25, y + 35, 18, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Center detail
+        this.ctx.fillStyle = '#27ae60';
+        this.ctx.beginPath();
+        this.ctx.arc(x + 25, y + 25, 10, 0, Math.PI * 2);
         this.ctx.fill();
     }
 
