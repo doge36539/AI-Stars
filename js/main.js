@@ -292,31 +292,44 @@ class Game {
 
 setupMenu() {
         this.state = 'MENU';
-        // Get the buttons from your HTML
-        const btnSolo = document.getElementById('btn-showdown');
-        const btnKnock = document.getElementById('btn-knockout');
-        const playBtn = document.getElementById('play-btn');
+        
+        // 1. Find the buttons in your HTML
+        const btnSolo = document.getElementById('btn-showdown'); // The Skull Creek button
+        const btnKnock = document.getElementById('btn-knockout'); // The Out in Open button
 
-        // Link the Solo button
+        // 2. Tell the Solo button what to do
         if (btnSolo) {
-            btnSolo.onclick = () => this.openMenu('showdown');
-        }
-
-        // Link the Knockout button
-        if (btnKnock) {
-            btnKnock.onclick = () => this.openMenu('knockout');
-        }
-
-        // Link the Play button
-        if (playBtn) {
-            playBtn.onclick = () => {
-                if (this.selectedBrawler) {
-                    this.startMatch();
-                } else {
-                    alert("Select a Brawler first!");
-                }
+            btnSolo.onclick = () => {
+                console.log("Solo button clicked!"); // Check your console for this!
+                this.openMenu('showdown');
             };
         }
+
+        // 3. Tell the Knockout button what to do
+        if (btnKnock) {
+            btnKnock.onclick = () => {
+                console.log("Knockout button clicked!");
+                this.openMenu('knockout');
+            };
+        }
+    }
+
+    openMenu(mode) {
+        this.mode = mode;
+        
+        // 1. Hide the Home Screen
+        const home = document.getElementById('screen-home');
+        if (home) home.style.display = 'none';
+
+        // 2. Show the Selection Screen
+        const select = document.getElementById('screen-select');
+        if (select) {
+            select.classList.remove('hidden'); // Remove the hidden class
+            select.style.display = 'flex';     // Force it to show as flex
+        }
+
+        // 3. Load the Brawlers into the grid
+        this.renderGrid();
     }
     openMenu(mode) {
         this.mode = mode;
