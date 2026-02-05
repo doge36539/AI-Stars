@@ -174,6 +174,8 @@ class Game {
         this.projectiles = []; 
         this.mouseX = 0;
         this.mouseY = 0;
+
+        this.ProjectileClass = Projectile;
         
         // KEYBOARD LISTENERS
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
