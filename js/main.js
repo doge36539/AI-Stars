@@ -169,28 +169,53 @@ class Entity {
         ctx.ellipse(screenX + 20, screenY + 40, 15, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Draw Player (Rectangle Fallback since we have no images)
-        ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; // Green for player, Red for enemy
-        ctx.fillRect(screenX, screenY, 40, 40);
+// Inside class Entity...
 
-        // Name/Icon
-        ctx.fillStyle = '#fff'; 
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        // Only draw text if not in bush (or is player)
-        if (!this.inBush || this.isPlayer) {
-             ctx.fillText(this.data.name.substring(0, 3), screenX + 20, screenY - 5);
+    draw(ctx, camX, camY) {
+        let screenX = this.x - camX;
+        let screenY = this.y - camY;
+
+        // 1. Hide if in bush (unless it's you or a teammate)
+        if (this.inBush) {
+            if (this.isPlayer) ctx.globalAlpha = 0.6; // Transparent for you
+            else return; // Invisible for enemies
+        } else {
+            ctx.globalAlpha = 1.0;
         }
-        
-        // Health Bar
-        ctx.globalAlpha = 1.0; 
-        ctx.fillStyle = '#333';
-        ctx.fillRect(screenX, screenY - 20, 40, 5);
-        ctx.fillStyle = this.isPlayer ? '#00ff00' : '#ff0000';
-        ctx.fillRect(screenX, screenY - 20, (this.hp / this.maxHp) * 40, 5);
-    }
-}
 
+        // 2. Draw Shadow (Oval underneath)
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. DRAW EMOJI MODEL
+        ctx.font = '40px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Use the icon from data, or a fallback face
+        let sprite = this.data.icon || '😐'; 
+        
+        // Save context to flip sprite if moving left
+        ctx.save();
+        if (this.lastMoveX < 0) { 
+            ctx.scale(-1, 1); 
+            ctx.fillText(sprite, -(screenX + 20), screenY + 25);
+        } else {
+            ctx.fillText(sprite, screenX + 20, screenY + 25);
+        }
+        ctx.restore();
+
+        // 4. Draw Health Bar
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(screenX, screenY - 15, 40, 6); // Background
+        
+        ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; // Green vs Red
+        let hpPercent = Math.max(0, this.hp / this.maxHp);
+        ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
+    }
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
