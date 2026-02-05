@@ -51,7 +51,7 @@ const ASSETS = {
     'wall':  '#d35400', // Canyon Orange
     'bush':  '#2ecc71', // Bright Bush Green
     'water': '#2980b9', // Deep Blue
-    'box':   '#8e44ad', // Purple (so boxes stand out against orange walls)
+    'box':   '#FF4D01', // Purple (so boxes stand out against orange walls)
     'floor': '#f3e5ab'  // Sand / Beige
 };
 
