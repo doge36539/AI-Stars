@@ -3,7 +3,6 @@ import { performAttack } from './combat/attacks.js';
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
-// ADD 'export' HERE:
 export const CONFIG = {
     TILE_SIZE: 50,
     CANVAS_W: 1600,
@@ -23,8 +22,6 @@ class Projectile {
         this.owner = owner;
         this.active = true;
         this.distanceTravelled = 0;
-
-        // Apply hand-coded ID transfers (color, size, etc) from attacks.js
         Object.assign(this, custom);
     }
 
@@ -51,11 +48,11 @@ const ASSETS = {
     'wall':  '#d35400', // Canyon Orange
     'bush':  '#2ecc71', // Bright Bush Green
     'water': '#2980b9', // Deep Blue
-    'box':   '#FF4D01', // Purple (so boxes stand out against orange walls)
+    'box':   '#8e44ad', // Purple
     'floor': '#f3e5ab'  // Sand / Beige
 };
 
-const IMAGES = {};
+const IMAGES = {}; // Empty because we are using colors now
 
 class Entity {
     constructor(data, x, y, isPlayer, game) {
@@ -87,26 +84,28 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // ... rest of logic
             // AI Logic
             const player = this.game.player;
-            const dist = Math.hypot(player.x - this.x, player.y - this.y);
-            const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
+            // Simple check to prevent crash if player is dead/missing
+            if (player) {
+                const dist = Math.hypot(player.x - this.x, player.y - this.y);
+                const canSee = (dist < CONFIG.AI_SIGHT_RANGE) && (!player.inBush || dist < 100);
 
-            if (canSee) {
-                this.targetX = player.x;
-                this.targetY = player.y;
-                this.patrolTimer = 0;
-            } else {
-                if (this.targetX === null || this.hasReachedTarget()) {
-                    this.pickRandomPatrolPoint();
+                if (canSee) {
+                    this.targetX = player.x;
+                    this.targetY = player.y;
+                    this.patrolTimer = 0;
+                } else {
+                    if (this.targetX === null || this.hasReachedTarget()) {
+                        this.pickRandomPatrolPoint();
+                    }
                 }
-            }
 
-            if (this.targetX !== null) {
-                const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
-                dx = Math.cos(angle) * this.speed;
-                dy = Math.sin(angle) * this.speed;
+                if (this.targetX !== null) {
+                    const angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+                    dx = Math.cos(angle) * this.speed;
+                    dy = Math.sin(angle) * this.speed;
+                }
             }
         }
 
@@ -147,7 +146,7 @@ class Entity {
         for (let w of this.game.walls) {
             if (newX < w.x + w.w && newX + this.w > w.x &&
                 newY < w.y + w.h && newY + this.h > w.y) {
-                return true; // Hit Wall OR Water
+                return true; 
             }
         }
         return false;
@@ -170,26 +169,25 @@ class Entity {
         ctx.ellipse(screenX + 20, screenY + 40, 15, 8, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Icon/Image
-        let charName = this.data.name.toLowerCase(); 
-        let img = IMAGES[charName] || IMAGES['shelly']; 
+        // Draw Player (Rectangle Fallback since we have no images)
+        ctx.fillStyle = this.isPlayer ? '#2ecc71' : '#e74c3c'; // Green for player, Red for enemy
+        ctx.fillRect(screenX, screenY, 40, 40);
 
-        if (img) {
-           ctx.fillStyle = ASSETS[type]; // Uses the colors above
-           ctx.fillRect(x, y, size, size);
-        } else {
-            ctx.fillStyle = '#fff'; 
-            ctx.font = '40px serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(this.data.icon, screenX + 20, screenY + 35);
+        // Name/Icon
+        ctx.fillStyle = '#fff'; 
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        // Only draw text if not in bush (or is player)
+        if (!this.inBush || this.isPlayer) {
+             ctx.fillText(this.data.name.substring(0, 3), screenX + 20, screenY - 5);
         }
         
         // Health Bar
         ctx.globalAlpha = 1.0; 
         ctx.fillStyle = '#333';
-        ctx.fillRect(screenX, screenY - 15, 40, 5);
+        ctx.fillRect(screenX, screenY - 20, 40, 5);
         ctx.fillStyle = this.isPlayer ? '#00ff00' : '#ff0000';
-        ctx.fillRect(screenX, screenY - 15, (this.hp / this.maxHp) * 40, 5);
+        ctx.fillRect(screenX, screenY - 20, (this.hp / this.maxHp) * 40, 5);
     }
 }
 
@@ -210,43 +208,37 @@ class Game {
         this.mapWidth = 2000;
         this.mapHeight = 1500;
         
-        // --- NEW COMBAT VARIABLES (Add these!) ---
+        // COMBAT
         this.projectiles = []; 
         this.mouseX = 0;
         this.mouseY = 0;
-
         this.ProjectileClass = Projectile;
         
-        // KEYBOARD LISTENERS
+        // LISTENERS
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
-        // --- NEW MOUSE LISTENERS (Add these!) ---
-        // 1. Track Mouse Position
         window.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             this.mouseX = e.clientX - rect.left;
             this.mouseY = e.clientY - rect.top;
         });
 
-        // 2. Detect Click to Shoot
         window.addEventListener('mousedown', () => {
             if (this.state === 'GAME' && this.player) {
-                // Ensure you imported performAttack at the top of the file!
                 performAttack(this.player, this, this.mouseX, this.mouseY);
             }
         });
     }
 
     init() {
-        console.log("ENGINE LINKED TO MAPS.JS");
-        this.loadAssets().then(() => {
-            this.setupMenu();
-        });
+        console.log("ENGINE LINKED. ASSETS READY.");
+        // We skip loadAssets image loading because we use colors now.
+        this.setupMenu();
     }
+
     checkWallCollision(x, y) {
         for (let w of this.walls) {
-            // Check if x,y is inside a wall box
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
                 return true;
             }
@@ -254,88 +246,27 @@ class Game {
         return false;
     }
 
-    loop() {
-        if (this.state !== 'GAME') return;
-
-        // 1. UPDATE
-        this.entities.forEach(e => e.update());
-        this.updateCamera();
-
-        // Update Bullets
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            let p = this.projectiles[i];
-            p.update();
-            if (!p.active) this.projectiles.splice(i, 1);
-        }
-
-        // 2. CLEAR & DRAW MAP
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Draw Walls
-        this.walls.forEach(w => {
-            let drawX = w.x - this.camera.x;
-            let drawY = w.y - this.camera.y;
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if (w.type === 'wall') {
-                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
-                    else this.drawWall(drawX, drawY);
-                } else if (w.type === 'box') {
-                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
-                    else {
-                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX+5, drawY+10, 40, 35);
-                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX+5, drawY+5, 40, 10);
-                    }
-                } else if (w.type === 'water') this.drawWater(drawX, drawY);
-            }
-        });
-
-        // Draw Bushes
-        this.bushes.forEach(b => {
-            let drawX = b.x - this.camera.x;
-            let drawY = b.y - this.camera.y;
-            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
-                if(IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
-                else this.drawBush(drawX, drawY);
-            }
-        });
-
-        // 3. DRAW ENTITIES & BULLETS
-        this.entities.sort((a, b) => a.y - b.y);
-        this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
-        this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
-
-        // 4. 
-        if (this.player) {
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.player.x + 20 - this.camera.x, this.player.y + 20 - this.camera.y);
-            this.ctx.lineTo(this.mouseX, this.mouseY);
-            this.ctx.stroke();
-        }
-
-        requestAnimationFrame(() => this.loop());
-    }
-
     loadAssets() {
-        return new Promise((resolve) => {
-            let loadedCount = 0;
-            const total = Object.keys(ASSETS).length;
-            if (total === 0) resolve();
-
-            for (let key in ASSETS) {
-                const img = new Image();
-                img.src = ASSETS[key];
-                img.onload = () => { IMAGES[key] = img; loadedCount++; if (loadedCount === total) resolve(); };
-                img.onerror = () => { loadedCount++; if (loadedCount === total) resolve(); };
-            }
-        });
+        // Disabled image loading to prevent 404s
+        return Promise.resolve();
     }
 
-setupMenu() {
+    setupMenu() {
         this.state = 'MENU';
         const btnSolo = document.getElementById('btn-showdown');
         const btnKnock = document.getElementById('btn-knockout');
+        
+        // *** FIX: WIRE UP THE BRAWL BUTTON! ***
+        const btnPlay = document.getElementById('play-btn');
+        if (btnPlay) {
+            btnPlay.onclick = () => {
+                if (this.selectedBrawler) {
+                    this.startMatch();
+                } else {
+                    console.log("Select a brawler first!");
+                }
+            };
+        }
 
         if (btnSolo) {
             btnSolo.onclick = () => {
@@ -353,40 +284,30 @@ setupMenu() {
     }
 
     openMenu() {
-        // 1. Hide the Home Screen
         document.getElementById('screen-home').style.display = 'none';
-        
-        // 2. Show the Selection Screen
         const selectScreen = document.getElementById('screen-select');
         selectScreen.classList.remove('hidden');
         selectScreen.style.display = 'flex';
-        
-        // 3. Draw the Brawler list
         this.renderGrid();
     }
- renderGrid() {
+
+    renderGrid() {
         const grid = document.getElementById('grid');
         grid.innerHTML = ''; 
 
-        // --- SCROLLBAR SETTINGS ---
-        // This forces the grid to stay inside the box and scroll if needed
-        grid.style.maxHeight = '500px';  // Stop it from getting taller than 500px
-        grid.style.overflowY = 'auto';   // Add a vertical scrollbar
-        grid.style.display = 'flex';     // Ensure cards sit next to each other
-        grid.style.flexWrap = 'wrap';    // Wrap to next line
+        // Style Fixes
+        grid.style.maxHeight = '500px'; 
+        grid.style.overflowY = 'auto';   
+        grid.style.display = 'flex';     
+        grid.style.flexWrap = 'wrap';    
         grid.style.justifyContent = 'center';
 
         BRAWLERS.forEach(b => {
             const card = document.createElement('div');
             card.className = 'card';
             
-            // Handle Images or Emojis
-            // We use the ID if it exists, otherwise the Name
-            let charID = (b.id !== undefined) ? b.id : b.name.toLowerCase();
-            let imgHTML = IMAGES[charID] 
-                ? `<img src="${ASSETS[charID]}" style="width:50px;">` 
-                : `<div style="font-size:40px;">${b.icon}</div>`;
-
+            // Emoji Icon since no images
+            let imgHTML = `<div style="font-size:40px;">${b.icon || '❓'}</div>`;
             card.innerHTML = `${imgHTML}<div>${b.name}</div>`;
             
             card.onclick = () => {
@@ -397,7 +318,7 @@ setupMenu() {
                 const descLabel = document.getElementById('brawler-desc');
                 if(descLabel) descLabel.innerText = b.desc;
                 
-                // Enable Play Button
+                // Visual feedback for button
                 const playBtn = document.getElementById('play-btn');
                 if(playBtn) {
                     playBtn.disabled = false;
@@ -409,11 +330,11 @@ setupMenu() {
         });
     }
 
-startMatch() {
+    startMatch() {
+        console.log("START MATCH CLICKED");
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
 
-        // Choose map based on the mode selected in the menu
         if (this.mode === 'knockout') {
             console.log("Loading: Out in the Open");
             this.loadMap(MAP_OUT_OPEN);
@@ -432,22 +353,20 @@ startMatch() {
         
         if (!originalAscii) return;
 
-        // 1. ADD BORDERS (The 'Z' Walls)
+        // Borders
         const mapW = originalAscii[0].length;
         const borderRow = "Z".repeat(mapW + 2); 
         
         let ascii = [];
-        ascii.push(borderRow); // Top Border
+        ascii.push(borderRow); 
         for(let row of originalAscii) {
-            ascii.push("Z" + row + "Z"); // Side Borders
+            ascii.push("Z" + row + "Z");
         }
-        ascii.push(borderRow); // Bottom Border
+        ascii.push(borderRow); 
 
-        // 2. SAVE THE NEW SIZE
         this.mapWidth = ascii[0].length * CONFIG.TILE_SIZE;
         this.mapHeight = ascii.length * CONFIG.TILE_SIZE;
 
-        // 3. GENERATE TILES
         for (let r = 0; r < ascii.length; r++) {
             for (let c = 0; c < ascii[r].length; c++) {
                 let x = c * CONFIG.TILE_SIZE;
@@ -469,12 +388,12 @@ startMatch() {
             }
         }
         
-        // 4. SPAWN ENEMIES (Now inside the function where it belongs!)
+        // Spawn AI
         for(let i=0; i<3; i++) {
             let enemy = new Entity(BRAWLERS[0], this.mapWidth - 300, 300 + (i*200), false, this);
             this.entities.push(enemy);
         }
-    } // This closes loadMap
+    }
 
     updateCamera() {
         if (!this.player || !this.mapWidth) return;
@@ -486,22 +405,22 @@ startMatch() {
         this.camera.y = Math.max(0, Math.min(targetY, maxCamY));
     }
 
+    // DRAW FUNCTIONS FOR MAP
     drawWall(x, y) {
-        this.ctx.fillStyle = '#a04000'; 
-        this.ctx.fillRect(x, y + 20, 50, 30);
-        this.ctx.fillStyle = '#e67e22'; 
-        this.ctx.fillRect(x, y, 50, 45); 
-        this.ctx.fillStyle = '#f39c12';
-        this.ctx.fillRect(x, y, 50, 5);
+        this.ctx.fillStyle = ASSETS.wall; 
+        this.ctx.fillRect(x, y, 50, 50);
+        // Detail line
+        this.ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        this.ctx.fillRect(x, y + 40, 50, 10);
     }
 
     drawWater(x, y) {
-        this.ctx.fillStyle = '#2980b9';
+        this.ctx.fillStyle = ASSETS.water;
         this.ctx.fillRect(x, y, 50, 50);
     }
 
     drawBush(x, y) {
-        this.ctx.fillStyle = '#2ecc71'; 
+        this.ctx.fillStyle = ASSETS.bush; 
         this.ctx.beginPath();
         this.ctx.arc(x + 25, y + 25, 30, 0, Math.PI * 2);
         this.ctx.fill();
@@ -510,6 +429,11 @@ startMatch() {
     loop() {
         if (this.state !== 'GAME') return;
 
+        // 1. CLEAR SCREEN (Sand Floor)
+        this.ctx.fillStyle = ASSETS.floor;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // 2. UPDATE
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
@@ -519,15 +443,15 @@ startMatch() {
             if (!p.active) this.projectiles.splice(i, 1);
         }
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
+        // 3. DRAW MAP
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
             if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
                 if (w.type === 'wall') this.drawWall(drawX, drawY);
                 else if (w.type === 'box') {
-                    this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
+                    this.ctx.fillStyle = ASSETS.box; 
+                    this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
                 }
                 else if (w.type === 'water') this.drawWater(drawX, drawY);
             }
@@ -539,10 +463,12 @@ startMatch() {
             this.drawBush(drawX, drawY);
         });
 
+        // 4. DRAW ENTITIES
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
 
+        // 5. AIM LINE
         if (this.player) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -554,7 +480,9 @@ startMatch() {
 
         requestAnimationFrame(() => this.loop());
     }
-} // <--- This closes the Game class
+}
 
+// Start Game
 const game = new Game();
+window.gameInstance = game; // Make it accessible for Debug Console
 window.onload = () => game.init();
