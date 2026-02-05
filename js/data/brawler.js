@@ -2,7 +2,7 @@
 export const BRAWLERS = [
     { id: 0, icon: '🔫', name: "SHELLY", hp: 11000, speed: 2.8, rarity: 'common', 
       atk: { dmg: 420, count: 5, range: 250, spread: 0.5, type: 'cone', 
-             ammo: 3, reload: 1500, cd: 500 }, // Updated
+             ammo: 3, reload: 1500, cd: 1 }, // Updated
       sup: { dmg: 450, count: 9, range: 450, push: 15, break: true, charge: 100 },
       desc: "Super destroys walls and knocks enemies back." },  
 
