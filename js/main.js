@@ -156,49 +156,31 @@ class Entity {
         let screenX = this.x - camX;
         let screenY = this.y - camY;
 
+        // 1. Hide if in bush (unless it's you)
         if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.5;
-            else return; 
-        } else {
-            ctx.globalAlpha = 1.0;
-        }
-
-        // Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.beginPath();
-        ctx.ellipse(screenX + 20, screenY + 40, 15, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-// Inside class Entity...
-
-    draw(ctx, camX, camY) {
-        let screenX = this.x - camX;
-        let screenY = this.y - camY;
-
-        // 1. Hide if in bush (unless it's you or a teammate)
-        if (this.inBush) {
-            if (this.isPlayer) ctx.globalAlpha = 0.6; // Transparent for you
+            if (this.isPlayer) ctx.globalAlpha = 0.6; 
             else return; // Invisible for enemies
         } else {
             ctx.globalAlpha = 1.0;
         }
 
-        // 2. Draw Shadow (Oval underneath)
+        // 2. Draw Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 3. DRAW EMOJI MODEL
+        // 3. DRAW EMOJI
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
-        // Use the icon from data, or a fallback face
         let sprite = this.data.icon || '😐'; 
         
-        // Save context to flip sprite if moving left
+        // Flip sprite if moving left
         ctx.save();
+        // Note: Make sure you added 'this.lastMoveX = 1;' to your constructor!
+        // If not, this check just defaults to facing right, which is fine.
         if (this.lastMoveX < 0) { 
             ctx.scale(-1, 1); 
             ctx.fillText(sprite, -(screenX + 20), screenY + 25);
@@ -216,6 +198,7 @@ class Entity {
         let hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
     }
+} // <--- This closing bracket ends the 'Entity' class. IMPORTANT!
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
