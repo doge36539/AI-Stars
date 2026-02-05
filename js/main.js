@@ -1,16 +1,15 @@
-import { performAttack } from './combat/attacks.js';
 // js/main.js
+import { performAttack } from './combat/attacks.js';
 import { BRAWLERS } from './data/brawler.js'; 
-// 1. IMPORT THE MAP FROM YOUR NEW FILE
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
-const CONFIG = {
+// ADD 'export' HERE:
+export const CONFIG = {
     TILE_SIZE: 50,
     CANVAS_W: 1600,
     CANVAS_H: 900,
     AI_SIGHT_RANGE: 600
 };
-
 // 2. ASSET PATHS (Make sure these images exist or it uses squares)
 const ASSETS = {
     'wall': 'images/wall.png',
@@ -202,6 +201,78 @@ class Game {
         this.loadAssets().then(() => {
             this.setupMenu();
         });
+    }
+    checkWallCollision(x, y) {
+        for (let w of this.walls) {
+            // Check if x,y is inside a wall box
+            if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    loop() {
+        if (this.state !== 'GAME') return;
+
+        // 1. UPDATE
+        this.entities.forEach(e => e.update());
+        this.updateCamera();
+
+        // Update Bullets
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            let p = this.projectiles[i];
+            p.update();
+            if (!p.active) this.projectiles.splice(i, 1);
+        }
+
+        // 2. CLEAR & DRAW MAP
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw Walls
+        this.walls.forEach(w => {
+            let drawX = w.x - this.camera.x;
+            let drawY = w.y - this.camera.y;
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                if (w.type === 'wall') {
+                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
+                    else this.drawWall(drawX, drawY);
+                } else if (w.type === 'box') {
+                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
+                    else {
+                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX+5, drawY+10, 40, 35);
+                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX+5, drawY+5, 40, 10);
+                    }
+                } else if (w.type === 'water') this.drawWater(drawX, drawY);
+            }
+        });
+
+        // Draw Bushes
+        this.bushes.forEach(b => {
+            let drawX = b.x - this.camera.x;
+            let drawY = b.y - this.camera.y;
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                if(IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
+                else this.drawBush(drawX, drawY);
+            }
+        });
+
+        // 3. DRAW ENTITIES & BULLETS
+        this.entities.sort((a, b) => a.y - b.y);
+        this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
+        this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
+
+        // 4. DRAW AIM LINE
+        if (this.player) {
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.player.x + 20 - this.camera.x, this.player.y + 20 - this.camera.y);
+            this.ctx.lineTo(this.mouseX, this.mouseY);
+            this.ctx.stroke();
+        }
+
+        requestAnimationFrame(() => this.loop());
     }
 
     loadAssets() {
@@ -399,29 +470,63 @@ drawWall(x, y) {
    loop() {
         if (this.state !== 'GAME') return;
 
+        // 1. UPDATE EVERYTHING
         this.entities.forEach(e => e.update());
         this.updateCamera();
 
-        // --- NEW CODE START: UPDATE BULLETS ---
+        // Update Projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             let p = this.projectiles[i];
-            p.update(); // Move the bullet
-            
-            // Remove if dead
+            p.update();
             if (!p.active) {
                 this.projectiles.splice(i, 1);
             }
         }
-        // --- NEW CODE END ---
 
-        // ... (Keep your existing Drawing code for floors/walls) ...
+        // 2. CLEAR SCREEN
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // ...
+        // 3. DRAW WALLS & WATER
+        this.walls.forEach(w => {
+            let drawX = w.x - this.camera.x;
+            let drawY = w.y - this.camera.y;
+            
+            // Only draw if on screen
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                if (w.type === 'wall') {
+                    if(IMAGES['wall']) this.ctx.drawImage(IMAGES['wall'], drawX, drawY, 50, 50);
+                    else this.drawWall(drawX, drawY);
+                } 
+                else if (w.type === 'box') {
+                    if(IMAGES['box']) this.ctx.drawImage(IMAGES['box'], drawX, drawY, 50, 50);
+                    else {
+                        this.ctx.fillStyle = '#d35400'; this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
+                        this.ctx.fillStyle = '#e67e22'; this.ctx.fillRect(drawX + 5, drawY + 5, 40, 10);
+                    }
+                }
+                else if (w.type === 'water') {
+                    this.drawWater(drawX, drawY);
+                }
+            }
+        });
+
+        // 4. DRAW BUSHES
+        this.bushes.forEach(b => {
+            let drawX = b.x - this.camera.x;
+            let drawY = b.y - this.camera.y;
+            if (drawX > -60 && drawX < CONFIG.CANVAS_W && drawY > -60 && drawY < CONFIG.CANVAS_H) {
+                if (IMAGES['bush']) this.ctx.drawImage(IMAGES['bush'], drawX, drawY, 50, 50);
+                else this.drawBush(drawX, drawY);
+            }
+        });
+
+        // 5. DRAW PLAYERS & PROJECTILES
+        this.entities.sort((a, b) => a.y - b.y);
+        this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         
-        // --- DRAW BULLETS (Put this AFTER drawing walls/entities) ---
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
-        
-        // --- OPTIONAL: DRAW AIM LINE (So you see where you are shooting) ---
+
+        // 6. DRAW AIM LINE
         if (this.player) {
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
@@ -431,9 +536,9 @@ drawWall(x, y) {
             this.ctx.stroke();
         }
 
+        // 7. REPEAT
         requestAnimationFrame(() => this.loop());
     }
-
         // DRAW OBJECTS
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
