@@ -412,8 +412,8 @@ class Game {
 
     updateCamera() {
         if (!this.player || !this.mapWidth) return;
-        let targetX = this.player.x - (CONFIG.CANVAS_W / 2);
-        let targetY = this.player.y - 450;
+        let targetX = this.player.x - 450;
+        let targetY = this.player.y - (CONFIG.CANVAS_W / 2);
         const maxCamX = this.mapWidth - CONFIG.CANVAS_W;
         const maxCamY = this.mapHeight - CONFIG.CANVAS_H;
         this.camera.x = Math.max(0, Math.min(targetX, maxCamX));
