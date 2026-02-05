@@ -1,7 +1,7 @@
 // js/data/brawlers.js
 export const BRAWLERS = [
     { id: 0, icon: '🔫', name: "SHELLY", hp: 11000, speed: 2.8, rarity: 'common', 
-      atk: { dmg: 420, count: 5, range: 1000, spread: 0.5, reload: 60, type: 'cone' },
+      atk: { dmg: 420, count: 5, range: 250, spread: 0.5, reload: 60, type: 'cone' },
       sup: { dmg: 450, count: 9, range: 450, push: 15, break: true, charge: 100 },
       desc: "Super destroys walls and knocks enemies back." },  
 
