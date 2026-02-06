@@ -39,8 +39,32 @@ export function performSuper(player, game, targetX, targetY) {
 
         /* --- SPAWNERS --- */
         case 'NITA':
-            spawnMinion(game, player, realTargetX, realTargetY, '🐻', 6000);
-            break;
+            function spawnMinion(game, owner, x, y, icon, hp) {
+    // 1. Create a "Bear" data object
+    const bearData = {
+        name: "Bruce",
+        icon: icon, // 🐻
+        hp: hp,
+        speed: 4.5, // Slightly faster than players
+        atk: {
+            dmg: 400,
+            range: 50, // Melee
+            reload: 800,
+            cd: 800
+        }
+    };
+
+    // 2. Use the owner's class to create a new Entity
+    // (This works even though we didn't import 'Entity' in this file!)
+    const bear = new owner.constructor(bearData, x, y, false, game);
+    
+    // 3. Add to game
+    game.entities.push(bear);
+    
+    // 4. Effect
+    // Create a little "Poof" effect using a dummy projectile
+    game.showFloatText("ROAR!", x, y - 40, '#e67e22');
+}
 
         /* --- LOBS --- */
         case 'DYNAMIKE':
