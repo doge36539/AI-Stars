@@ -537,7 +537,7 @@ class Game {
         });
     }
 
-    startMatch() {
+startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
         if (this.mode === 'knockout') this.loadMap(MAP_OUT_OPEN);
@@ -551,6 +551,15 @@ class Game {
             this.updateSuperButton(0); 
             this.updateAmmoUI();
         }
+
+        // *** FIX: GAS DELAY ***
+        this.gas = {
+            active: true,
+            inset: 0,        // Start at Edge
+            speed: 15,       // Shrink speed
+            damage: 1000,
+            delay: 5000      // 5000ms = 5 Seconds Wait
+        };
     }
 
     loadMap(originalAscii) {
