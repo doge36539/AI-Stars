@@ -22,7 +22,6 @@ class FloatingText {
         this.vy = -2;   
     }
     update(dt) {
-        // Move based on Time, not Frames
         this.y += this.vy * dt;
         this.life -= 1 * dt;
     }
@@ -57,9 +56,7 @@ class Projectile {
     update(dt) {
         if (!this.active) return;
         
-        // MOVE WITH DELTA TIME
         const moveStep = this.speed * dt;
-        
         this.x += Math.cos(this.angle) * moveStep;
         this.y += Math.sin(this.angle) * moveStep;
         this.distanceTravelled += moveStep;
@@ -170,14 +167,15 @@ class Entity {
     }
 
     update(dt) {
-        // Use Actual Time for Reloads (dt * 16.6ms per frame approx)
+        // AMMO LOGIC
         if (this.currentAmmo < this.maxAmmo) {
             this.reloadTimer += (16.6 * dt); 
             if (this.reloadTimer >= this.reloadSpeed) {
                 this.currentAmmo++;
                 this.reloadTimer = 0;
-                if (this.isPlayer) this.game.updateAmmoUI(); 
             }
+            // Update UI every frame to animate the bar
+            if (this.isPlayer) this.game.updateAmmoUI(); 
         }
 
         this.checkBush();
@@ -211,7 +209,6 @@ class Entity {
             }
         }
 
-        // Apply Delta Time to Movement
         if (dx !== 0 || dy !== 0) this.move(dx * dt, dy * dt);
     }
 
@@ -242,8 +239,6 @@ class Entity {
 
     move(dx, dy) {
         if (dx !== 0) this.lastMoveX = dx;
-        
-        // Simple collision (Check X then Y)
         if (!this.checkCollision(this.x + dx, this.y)) this.x += dx;
         if (!this.checkCollision(this.x, this.y + dy)) this.y += dy;
     }
@@ -322,12 +317,21 @@ class Game {
         this.mouseY = 0;
         this.ProjectileClass = Projectile;
         
-        // --- FPS CONTROL & DELTA TIME ---
         this.lastTime = 0;
         this.targetFPS = 60;
-        this.timestep = 1000 / 60; // 16.6ms
+        this.timestep = 1000 / 60; 
 
-        window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
+        // *** UPDATED KEY LISTENER FOR 'E' ***
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            this.keys[key] = true;
+
+            // Trigger Super on E press
+            if (key === 'e') {
+                this.tryUseSuper();
+            }
+        });
+        
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
         window.addEventListener('mousemove', (e) => {
@@ -358,17 +362,33 @@ class Game {
         this.floatingTexts.push(new FloatingText(text, x, y, color));
     }
 
+    // *** UPDATED: NO SKULL LOGO ***
     updateSuperButton(percent) {
         const btn = document.getElementById('super-btn');
         if (!btn) return;
+
         if (percent >= 100) {
             btn.classList.add('super-charged');
-            btn.innerText = "☠️";
+            btn.innerText = "SUPER"; // Just text, no skull
             btn.style.background = ""; 
         } else {
             btn.classList.remove('super-charged');
             btn.innerText = "SUPER";
             btn.style.background = `linear-gradient(to top, #f1c40f ${percent}%, #444 ${percent}%)`;
+        }
+    }
+
+    // *** NEW: Helper to fire Super (used by Button AND 'E' Key) ***
+    tryUseSuper() {
+        if (this.state === 'GAME' && this.player) {
+            if (this.player.superCharge >= 100) {
+                this.showFloatText("SUPER USED!", this.player.x + 20, this.player.y - 20, '#f1c40f');
+                performSuper(this.player, this, this.mouseX, this.mouseY);
+                this.player.superCharge = 0; 
+                this.updateSuperButton(0); 
+            } else {
+                this.showFloatText("NOT READY!", this.player.x + 20, this.player.y - 20, '#95a5a6');
+            }
         }
     }
 
@@ -414,16 +434,7 @@ class Game {
             btnSuper.onmousedown = (e) => {
                 e.preventDefault(); 
                 e.stopPropagation(); 
-                if (this.state === 'GAME' && this.player) {
-                    if (this.player.superCharge >= 100) {
-                        this.showFloatText("SUPER USED!", this.player.x + 20, this.player.y - 20, '#f1c40f');
-                        performSuper(this.player, this, this.mouseX, this.mouseY);
-                        this.player.superCharge = 0; 
-                        this.updateSuperButton(0); 
-                    } else {
-                        this.showFloatText("NOT READY!", this.player.x + 20, this.player.y - 20, '#95a5a6');
-                    }
-                }
+                this.tryUseSuper(); // Uses the shared function
             };
         }
 
@@ -452,16 +463,31 @@ class Game {
         }
     }
 
+    // *** UPDATED: ANIMATED AMMO REFILL ***
     updateAmmoUI() {
         if (!this.player) return;
+        
+        // Calculate how much of the "next" bar is filled (0% to 100%)
+        let reloadPercent = 0;
+        if (this.player.currentAmmo < this.player.maxAmmo) {
+            reloadPercent = (this.player.reloadTimer / this.player.reloadSpeed) * 100;
+        }
+
         for (let i = 1; i <= 3; i++) {
             const el = document.getElementById('ammo' + i);
             if (el) {
                 if (i <= this.player.currentAmmo) {
-                    el.style.backgroundColor = '#e67e22'; 
+                    // Full Ammo = Solid Orange
+                    el.style.background = '#e67e22'; 
                     el.style.boxShadow = "0 0 5px #e67e22";
+                } else if (i === this.player.currentAmmo + 1) {
+                    // This is the bar currently reloading!
+                    // Animate it filling up from left to right
+                    el.style.background = `linear-gradient(to right, #e67e22 ${reloadPercent}%, #333 ${reloadPercent}%)`;
+                    el.style.boxShadow = "none";
                 } else {
-                    el.style.backgroundColor = '#333'; 
+                    // Empty Ammo = Dark Grey
+                    el.style.background = '#333'; 
                     el.style.boxShadow = "none";
                 }
             }
@@ -607,7 +633,6 @@ class Game {
         this.ctx.fill();
     }
 
-    // *** PROFESSIONAL LOOP with DELTA TIME ***
     loop() {
         if (this.state !== 'GAME') return;
 
@@ -615,38 +640,30 @@ class Game {
 
         const now = Date.now();
         let elapsed = now - this.lastTime;
-
-        // If time jump is huge (tab switch), cap it to prevent teleporting
         if (elapsed > 100) elapsed = 100;
-
-        // CALCULATE DT (1.0 = 60fps, 2.0 = 30fps)
         const dt = elapsed / this.timestep;
-        
         this.lastTime = now;
 
-        // --- UPDATE ---
-        this.entities.forEach(e => e.update(dt)); // Pass DT to entities
+        this.entities.forEach(e => e.update(dt)); 
         
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             let p = this.projectiles[i];
-            p.update(dt); // Pass DT to projectiles
+            p.update(dt); 
             if (!p.active) this.projectiles.splice(i, 1);
         }
 
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             let ft = this.floatingTexts[i];
-            ft.update(dt); // Pass DT to text
+            ft.update(dt); 
             if (ft.life <= 0) this.floatingTexts.splice(i, 1);
         }
 
         this.updateCamera();
 
-        // --- RENDER ---
         this.ctx.globalAlpha = 1.0; 
         this.ctx.fillStyle = ASSETS.floor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw Map
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
@@ -666,7 +683,6 @@ class Game {
             this.drawBush(drawX, drawY);
         });
 
-        // Draw Entities
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
