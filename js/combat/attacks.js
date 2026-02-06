@@ -3,66 +3,74 @@
 export function performAttack(player, game, mouseX, mouseY) {
     // 0. SAFETY CHECKS
     if (!player || !player.data) return;
-    if (game.state !== 'GAME') return;
 
-    const now = Date.now();
     const data = player.data;
     const stats = data.atk;
 
-    // 1. RELOAD LOGIC
-    // (reload is in frames/ticks, multiply by 10 for ms)
-    if (player.lastShot && now - player.lastShot < (stats.reload * 10)) return;
-    player.lastShot = now;
-
-    // 2. CALCULATE ANGLE
+    // 1. CALCULATE ANGLE
+    // We need to add camera.x because mouseX is screen coordinates
     const realMouseX = mouseX + game.camera.x;
     const realMouseY = mouseY + game.camera.y;
+    
     // +20 centers the shot on the player sprite
     const angle = Math.atan2(realMouseY - (player.y + 20), realMouseX - (player.x + 20));
+    
+    // Normalize name to ensure matching (e.g. "Colt" becomes "COLT")
     const name = data.name.toUpperCase();
 
-    // 3. ATTACK LOGIC
+    // 2. ATTACK LOGIC SWITCH
     switch (name) {
-        /* --- SHOTGUNS --- */
+        /* --- SHOTGUNS (Fans) --- */
         case 'SHELLY':
-            spawnPattern(game, player, angle, stats.count, stats.spread, 12, stats.range, stats.dmg, { color: '#e67e22', size: 4 });
+            spawnPattern(game, player, angle, stats.count, stats.spread, 12, stats.range, stats.dmg, { color: '#e67e22', size: 5 });
             break;
         case 'BULL':
-            spawnPattern(game, player, angle, stats.count, stats.spread, 14, stats.range, stats.dmg, { color: '#95a5a6', size: 3 });
+            spawnPattern(game, player, angle, stats.count, stats.spread, 14, stats.range, stats.dmg, { color: '#e74c3c', size: 4 });
             break;
         case 'DARRYL':
-            spawnBurst(game, player, angle, 2, 150, 13, stats.range, stats.dmg, { color: '#7f8c8d', size: 3, isShotgun: true });
+            spawnBurst(game, player, angle, 2, 100, 13, stats.range, stats.dmg, { color: '#7f8c8d', size: 4, isShotgun: true });
+            break;
+        case 'CROW':
+            spawnPattern(game, player, angle, 3, 0.4, 14, stats.range, stats.dmg, { color: '#2ecc71', size: 4, type: 'dagger' });
+            break;
+        case 'LEON':
+            spawnPattern(game, player, angle, 4, 0.4, 15, stats.range, stats.dmg, { color: '#2ecc71', size: 4, type: 'shuriken' });
             break;
 
-        /* --- SNIPERS --- */
+        /* --- BURST SHOOTERS (Pew Pew Pew) --- */
         case 'COLT':
-            spawnBurst(game, player, angle, stats.count, 100, 18, stats.range, stats.dmg, { color: '#000000', size: 3 });
+            spawnBurst(game, player, angle, stats.count, 80, 16, stats.range, stats.dmg, { color: '#3498db', size: 4 });
             break;
         case 'RICO':
-            spawnBurst(game, player, angle, stats.count, 90, 18, stats.range, stats.dmg, { color: '#00ccff', size: 4, bounce: true });
-            break;
-        case 'PIPER':
-        case 'BEA':
-            spawnPattern(game, player, angle, 1, 0, 24, stats.range, stats.dmg, { color: '#5dade2', size: 3 });
-            break;
-        case 'BROCK':
-            spawnPattern(game, player, angle, 1, 0, 11, stats.range, stats.dmg, { color: '#e67e22', size: 10, type: 'rocket' });
+            spawnBurst(game, player, angle, stats.count, 80, 16, stats.range, stats.dmg, { color: '#9b59b6', size: 5, bounce: true });
             break;
         case '8-BIT':
-            spawnBurst(game, player, angle, stats.count, 80, 17, stats.range, stats.dmg, { color: '#ecf0f1', size: 3 });
+            spawnBurst(game, player, angle, stats.count, 90, 15, stats.range, stats.dmg, { color: '#ecf0f1', size: 4 });
             break;
 
-        /* --- AREA / SPECIALS --- */
+        /* --- SNIPERS / SINGLE SHOT --- */
+        case 'PIPER':
+        case 'BEA':
+        case 'BROCK':
+            spawnPattern(game, player, angle, 1, 0, 20, stats.range, stats.dmg, { color: '#e67e22', size: 8 });
+            break;
+        
+        case 'NITA':
+             spawnPattern(game, player, angle, 1, 0, 14, stats.range, stats.dmg, { color: '#2ecc71', size: 20, type: 'wave' });
+             break;
+
+        /* --- SPREAD / AOE --- */
         case 'POCO':
-            spawnPattern(game, player, angle, 5, 0.8, 10, stats.range, stats.dmg, { color: '#008000', size: 12, isRect: true });
+            spawnPattern(game, player, angle, 5, 0.8, 11, stats.range, stats.dmg, { color: '#e67e22', size: 8 });
             break;
         case 'EL PRIMO':
         case 'ROSA':
-            spawnPattern(game, player, angle, stats.count, 0.5, 15, stats.range, stats.dmg, { color: '#3498db', size: 8 });
+            spawnPattern(game, player, angle, stats.count, 0.4, 14, stats.range, stats.dmg, { color: '#3498db', size: 10 });
             break;
         case 'BARLEY':
         case 'DYNAMIKE':
-            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#FF0000', size: 7, type: 'lob' });
+        case 'TICK':
+            spawnPattern(game, player, angle, 1, 0, 10, stats.range, stats.dmg, { color: '#FF0000', size: 6, type: 'lob' });
             break;
 
         default:
@@ -74,25 +82,34 @@ export function performAttack(player, game, mouseX, mouseY) {
 
 // --- HELPERS ---
 
+// Shoots all bullets at once (Shotgun style)
 function spawnPattern(game, p, angle, count, spread, speed, range, dmg, custom) {
+    // Center the spread
     const start = angle - (spread / 2);
     const step = count > 1 ? spread / (count - 1) : 0;
     
     for (let i = 0; i < count; i++) {
+        // If count is 1, just use the angle, otherwise use spread
+        const currentAngle = count === 1 ? angle : start + (step * i);
+        
         game.projectiles.push(new game.ProjectileClass(
             p.x + 20, p.y + 20, 
-            start + (step * i), 
+            currentAngle, 
             speed, range, dmg, p, custom
         ));
     }
 }
 
+// Shoots bullets one by one (Colt style)
 function spawnBurst(game, p, angle, count, delay, speed, range, dmg, custom) {
     let fired = 0;
+
     const fireShot = () => {
         if (custom.isShotgun) {
+            // Special case for Darryl (Double Shotgun Burst)
             spawnPattern(game, p, angle, 4, 0.3, speed, range, dmg, custom);
         } else {
+            // Normal Burst
             game.projectiles.push(new game.ProjectileClass(
                 p.x + 20, p.y + 20, angle, speed, range, dmg, p, custom
             ));
@@ -102,13 +119,17 @@ function spawnBurst(game, p, angle, count, delay, speed, range, dmg, custom) {
     fireShot(); // First shot immediately
     fired++;
 
+    // Fire the rest with a delay
     const interval = setInterval(() => {
-        if (game.state !== 'GAME' || p.dead) {
+        // Stop if game over or player dead
+        if (game.state !== 'GAME') {
             clearInterval(interval);
             return;
         }
+        
         fireShot();
         fired++;
+        
         if (fired >= count) clearInterval(interval);
     }, delay);
 }
