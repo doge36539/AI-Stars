@@ -2,7 +2,6 @@
 
 export function performSuper(player, game, targetX, targetY) {
     const data = player.data;
-    const sup = data.sup;
     const name = data.name.toUpperCase();
 
     // 1. CALCULATE ANGLE
@@ -13,41 +12,39 @@ export function performSuper(player, game, targetX, targetY) {
     console.log(`ACTIVATING SUPER: ${name}`);
 
     switch (name) {
-        /* --- WALL BREAKERS (Shelly, Colt, etc) --- */
+        /* --- WALL BREAKERS --- */
         case 'SHELLY':
-            // Super Shell: 9 bullets, breaks walls, pushes back
             spawnSuperProjectile(game, player, angle, 9, 0.5, 15, 450, 400, { 
                 color: '#e74c3c', size: 8, wallBreaker: true, knockback: 20 
             });
             break;
 
         case 'COLT':
-        case 'RICO': // Rico's super bounces, but for now we treat it like a mega blast
-            // Bullet Storm: Fast, long range, breaks walls
+        case 'RICO': 
             spawnBurstSuper(game, player, angle, 12, 50, 20, 800, 300, {
                 color: '#e74c3c', size: 6, wallBreaker: true 
             });
             break;
 
+        /* --- MOVEMENT SUPERS --- */
         case 'BULL':
-            // Bulldozer: For now, we simulate this as a fast Dash
-            performDash(player, angle, 600, 25);
+            // Dash towards mouse
+            performDash(game, player, angle, 600, 25);
             break;
         
         case 'EL PRIMO':
-            // Meteor Jump: Teleport to target + damage area
+            // Jump to mouse cursor
             performJump(game, player, realTargetX, realTargetY, 1600);
             break;
 
         /* --- SPAWNERS --- */
         case 'NITA':
-            // Spawn Bear at cursor
             spawnMinion(game, player, realTargetX, realTargetY, '🐻', 6000);
             break;
 
-        /* --- LOBS / BOMBS --- */
+        /* --- LOBS --- */
         case 'DYNAMIKE':
-            // Big Bomb
+        case 'BARLEY':
             spawnSuperProjectile(game, player, angle, 1, 0, 12, 500, 2000, {
                 color: '#e74c3c', size: 25, type: 'lob', wallBreaker: true
             });
@@ -55,20 +52,18 @@ export function performSuper(player, game, targetX, targetY) {
 
         /* --- SUPPORT --- */
         case 'POCO':
-            // Heal Wave (Heals self for now)
             player.hp = Math.min(player.maxHp, player.hp + 2000);
             spawnSuperProjectile(game, player, angle, 20, 1.5, 15, 600, 0, {
-                color: '#2ecc71', size: 10 // Green visual wave
+                color: '#2ecc71', size: 10 
             });
             break;
 
         case 'ROSA':
-            // Shield (Just give temporary HP for now)
-            player.hp += 3000;
+            player.hp += 3000; // Temporary Shield (HP Buff)
             break;
 
         default:
-            // Generic Super Fireball
+            // Fallback
             spawnSuperProjectile(game, player, angle, 1, 0, 15, 600, 1000, {
                 color: '#ff0000', size: 15, wallBreaker: true
             });
@@ -104,22 +99,20 @@ function spawnBurstSuper(game, p, angle, count, delay, speed, range, dmg, custom
 }
 
 function spawnMinion(game, owner, x, y, icon, hp) {
-    // Create a dummy entity for the bear
-    // In a real engine, we'd need a separate 'Minion' class, but we can hack Entity
-    // We import Entity from main.js implicitly by creating it on the fly if needed
-    // For now, let's just log it or spawn a stationary turret
-    // To do this properly requires updating main.js to allow adding entities dynamically
     console.log("Bear Spawned! (Visual only for now)");
+    // In the future, we can add: new Entity(BEAR_DATA, x, y, ...)
 }
 
-function performDash(player, angle, distance, speed) {
-    // Simple dash logic: Force move player
+function performDash(game, player, angle, distance, speed) {
     let travelled = 0;
     const interval = setInterval(() => {
+        // SAFETY CHECK: Stop if game over
+        if (game.state !== 'GAME') { clearInterval(interval); return; }
+
         const dx = Math.cos(angle) * speed;
         const dy = Math.sin(angle) * speed;
         
-        // We bypass collision for "Charge" supers usually
+        // Bypassing collision for the dash sensation
         player.x += dx;
         player.y += dy;
         travelled += speed;
@@ -129,15 +122,17 @@ function performDash(player, angle, distance, speed) {
 }
 
 function performJump(game, player, destX, destY, dmg) {
-    // 1. "Hide" player (jump up)
     const originalY = player.y;
     
-    // 2. Teleport after delay
+    // Jump Delay
     setTimeout(() => {
+        // SAFETY CHECK: Stop if game over
+        if (game.state !== 'GAME') return;
+
         player.x = destX;
         player.y = destY;
         
-        // Impact Damage
-        spawnSuperProjectile(game, player, 0, 8, 6.28, 10, 100, dmg, { color: '#e74c3c', size: 10 });
-    }, 500); // 0.5s air time
+        // Landing Explosion
+        spawnSuperProjectile(game, player, 0, 8, 6.28, 10, 150, dmg, { color: '#e74c3c', size: 10 });
+    }, 500); 
 }
