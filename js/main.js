@@ -196,6 +196,23 @@ class Entity {
         this.targetY = null;
         this.patrolTimer = 0;
         this.lastMoveX = 1; 
+        this.poisoned = 0; // New Property
+    }
+
+    update() {
+        const now = Date.now();
+        const dt = now - this.lastUpdate;
+        this.lastUpdate = now;
+
+        // POISON LOGIC
+        if (this.poisoned > 0) {
+            this.poisoned--;
+            if (this.poisoned % 20 === 0) { // Take damage every 20 frames
+                this.hp -= 20; // 20 Damage ticks
+                // Green flash visual effect could go here
+            }
+            if (this.hp <= 0) this.x = -1000;
+        }
 
         // AMMO & COOLDOWN
         const stats = data.atk || {};
