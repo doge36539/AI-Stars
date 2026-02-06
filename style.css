@@ -69,28 +69,40 @@ canvas {
     background: #e67e22; /* Orange Reload Color */
 }
 
-/* SUPER BUTTON (Yellow Circle) */
+/* SUPER BUTTON (Default = GREY / EMPTY) */
 #super-btn {
     width: 70px;
     height: 70px;
-    background: radial-gradient(circle, #f1c40f, #e67e22);
-    border: 3px solid #fff;
+    background: #444; /* Grey */
+    border: 3px solid #777; /* Grey border */
     border-radius: 50%;
-    color: white;
+    color: #aaa;
     font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 15px #f1c40f;
-    text-shadow: 1px 1px 0 #000;
     font-size: 12px;
+    cursor: default; /* Don't show the hand cursor */
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+/* SUPER BUTTON (READY STATE = YELLOW) */
+/* We will add this class via JavaScript when charge hits 100 */
+#super-btn.super-charged {
+    background: radial-gradient(circle, #f1c40f, #e67e22); /* YELLOW */
+    border: 3px solid #fff;
+    color: white;
+    box-shadow: 0 0 20px #f1c40f;
+    text-shadow: 1px 1px 0 #000;
     cursor: pointer;
-    animation: pulse 2s infinite;
+    opacity: 1;
+    animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
     0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
 
