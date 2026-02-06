@@ -1,5 +1,6 @@
 // js/main.js
 import { performAttack } from './combat/attacks.js';
+import { performSuper } from './combat/supers.js';
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
