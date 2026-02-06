@@ -574,8 +574,11 @@ class Game {
                 let y = r * CONFIG.TILE_SIZE;
                 let tile = ascii[r][c];
 
-                if (tile === '#' || tile === 'Z') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
+                // *** FIX: Separate Z (Bedrock) from # (Wall) ***
+                if (tile === '#') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' }); // Breakable
+                } else if (tile === 'Z') {
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'bedrock' }); // Unbreakable
                 } else if (tile === 'X') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
                 } else if (tile === 'W') {
