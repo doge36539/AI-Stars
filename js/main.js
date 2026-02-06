@@ -83,7 +83,8 @@ class Entity {
         this.shotCooldown = stats.cd || 500;
         
         this.reloadTimer = 0;
-        this.lastAttackTime = 0; 
+        this.lastAttackTime = 0;
+        this.superCharge = 100;
 
         // NEW: Track real time for updates
         this.lastUpdate = Date.now();
