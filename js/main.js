@@ -21,9 +21,10 @@ class FloatingText {
         this.life = 40; 
         this.vy = -2;   
     }
-    update() {
-        this.y += this.vy;
-        this.life--;
+    update(dt) {
+        // Move based on Time, not Frames
+        this.y += this.vy * dt;
+        this.life -= 1 * dt;
     }
     draw(ctx, camX, camY) {
         ctx.globalAlpha = Math.max(0, this.life / 40);
@@ -53,12 +54,15 @@ class Projectile {
         Object.assign(this, custom);
     }
 
-    update() {
+    update(dt) {
         if (!this.active) return;
         
-        this.x += Math.cos(this.angle) * this.speed;
-        this.y += Math.sin(this.angle) * this.speed;
-        this.distanceTravelled += this.speed;
+        // MOVE WITH DELTA TIME
+        const moveStep = this.speed * dt;
+        
+        this.x += Math.cos(this.angle) * moveStep;
+        this.y += Math.sin(this.angle) * moveStep;
+        this.distanceTravelled += moveStep;
         
         if (this.distanceTravelled >= this.range) this.active = false;
         
@@ -88,17 +92,11 @@ class Projectile {
                 
                 this.owner.game.showFloatText("-" + this.dmg, e.x, e.y - 20, '#fff');
 
-                // *** NEW: CHARGE SUPER & UPDATE BUTTON PROGRESS ***
                 if (this.owner.superCharge < 100) {
-                    this.owner.superCharge += 20; // 5 hits = 100%
-                    
-                    // Cap it at 100
+                    this.owner.superCharge += 20; 
                     if (this.owner.superCharge > 100) this.owner.superCharge = 100;
-
                     if (this.owner.isPlayer) {
-                         // Update the visual button fill
                          this.owner.game.updateSuperButton(this.owner.superCharge);
-
                          if (this.owner.superCharge >= 100) {
                              this.owner.game.showFloatText("SUPER READY!", this.owner.x, this.owner.y - 50, '#f1c40f');
                          }
@@ -171,9 +169,10 @@ class Entity {
         this.superMax = 100;
     }
 
-    update() {
+    update(dt) {
+        // Use Actual Time for Reloads (dt * 16.6ms per frame approx)
         if (this.currentAmmo < this.maxAmmo) {
-            this.reloadTimer += 16.6; 
+            this.reloadTimer += (16.6 * dt); 
             if (this.reloadTimer >= this.reloadSpeed) {
                 this.currentAmmo++;
                 this.reloadTimer = 0;
@@ -191,7 +190,6 @@ class Entity {
             if (this.game.keys['a']) dx = -this.speed;
             if (this.game.keys['d']) dx = this.speed;
         } else {
-            // AI Logic
             const player = this.game.player;
             if (player) {
                 const dist = Math.hypot(player.x - this.x, player.y - this.y);
@@ -213,7 +211,8 @@ class Entity {
             }
         }
 
-        if (dx !== 0 || dy !== 0) this.move(dx, dy);
+        // Apply Delta Time to Movement
+        if (dx !== 0 || dy !== 0) this.move(dx * dt, dy * dt);
     }
 
     hasReachedTarget() {
@@ -243,6 +242,8 @@ class Entity {
 
     move(dx, dy) {
         if (dx !== 0) this.lastMoveX = dx;
+        
+        // Simple collision (Check X then Y)
         if (!this.checkCollision(this.x + dx, this.y)) this.x += dx;
         if (!this.checkCollision(this.x, this.y + dy)) this.y += dy;
     }
@@ -289,7 +290,6 @@ class Entity {
         }
         ctx.restore();
 
-        // HP Bar
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 6); 
@@ -316,14 +316,17 @@ class Game {
         this.camera = { x: 0, y: 0 };
         this.mapWidth = 2000;
         this.mapHeight = 1500;
-        
         this.projectiles = []; 
         this.floatingTexts = []; 
-        
         this.mouseX = 0;
         this.mouseY = 0;
         this.ProjectileClass = Projectile;
         
+        // --- FPS CONTROL & DELTA TIME ---
+        this.lastTime = 0;
+        this.targetFPS = 60;
+        this.timestep = 1000 / 60; // 16.6ms
+
         window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
@@ -355,23 +358,16 @@ class Game {
         this.floatingTexts.push(new FloatingText(text, x, y, color));
     }
 
-    // *** NEW: UPDATED BUTTON FILL LOGIC ***
     updateSuperButton(percent) {
         const btn = document.getElementById('super-btn');
         if (!btn) return;
-
         if (percent >= 100) {
-            // FULLY CHARGED STATE
             btn.classList.add('super-charged');
             btn.innerText = "☠️";
-            btn.style.background = ""; // Clear inline gradient so CSS animation works
+            btn.style.background = ""; 
         } else {
-            // FILLING STATE
             btn.classList.remove('super-charged');
             btn.innerText = "SUPER";
-            
-            // LIQUID FILL EFFECT (Yellow rises from bottom)
-            // Example: "linear-gradient(to top, #f1c40f 20%, #444 20%)"
             btn.style.background = `linear-gradient(to top, #f1c40f ${percent}%, #444 ${percent}%)`;
         }
     }
@@ -414,21 +410,16 @@ class Game {
         const btnPlay = document.getElementById('play-btn');
         const btnSuper = document.getElementById('super-btn'); 
 
-        // SUPER BUTTON CLICK
         if (btnSuper) {
             btnSuper.onmousedown = (e) => {
                 e.preventDefault(); 
                 e.stopPropagation(); 
-                
                 if (this.state === 'GAME' && this.player) {
                     if (this.player.superCharge >= 100) {
                         this.showFloatText("SUPER USED!", this.player.x + 20, this.player.y - 20, '#f1c40f');
-                        
                         performSuper(this.player, this, this.mouseX, this.mouseY);
-                        
-                        // RESET SUPER
                         this.player.superCharge = 0; 
-                        this.updateSuperButton(0); // Reset visual to empty
+                        this.updateSuperButton(0); 
                     } else {
                         this.showFloatText("NOT READY!", this.player.x + 20, this.player.y - 20, '#95a5a6');
                     }
@@ -522,9 +513,9 @@ class Game {
         if (this.mode === 'knockout') this.loadMap(MAP_OUT_OPEN);
         else this.loadMap(MAP_SKULL_CREEK);
         
+        this.lastTime = Date.now();
         this.loop();
         
-        // Reset UI on start
         if(this.player) {
             this.player.superCharge = 0;
             this.updateSuperButton(0); 
@@ -616,32 +607,46 @@ class Game {
         this.ctx.fill();
     }
 
+    // *** PROFESSIONAL LOOP with DELTA TIME ***
     loop() {
         if (this.state !== 'GAME') return;
 
-        this.ctx.globalAlpha = 1.0; 
+        requestAnimationFrame(() => this.loop());
 
-        // 1. CLEAR SCREEN
-        this.ctx.fillStyle = ASSETS.floor;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        const now = Date.now();
+        let elapsed = now - this.lastTime;
 
-        // 2. UPDATE
-        this.entities.forEach(e => e.update());
-        this.updateCamera();
+        // If time jump is huge (tab switch), cap it to prevent teleporting
+        if (elapsed > 100) elapsed = 100;
 
+        // CALCULATE DT (1.0 = 60fps, 2.0 = 30fps)
+        const dt = elapsed / this.timestep;
+        
+        this.lastTime = now;
+
+        // --- UPDATE ---
+        this.entities.forEach(e => e.update(dt)); // Pass DT to entities
+        
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             let p = this.projectiles[i];
-            p.update();
+            p.update(dt); // Pass DT to projectiles
             if (!p.active) this.projectiles.splice(i, 1);
         }
 
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             let ft = this.floatingTexts[i];
-            ft.update();
+            ft.update(dt); // Pass DT to text
             if (ft.life <= 0) this.floatingTexts.splice(i, 1);
         }
 
-        // 3. DRAW MAP
+        this.updateCamera();
+
+        // --- RENDER ---
+        this.ctx.globalAlpha = 1.0; 
+        this.ctx.fillStyle = ASSETS.floor;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw Map
         this.walls.forEach(w => {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
@@ -661,14 +666,12 @@ class Game {
             this.drawBush(drawX, drawY);
         });
 
-        // 4. DRAW ENTITIES
+        // Draw Entities
         this.entities.sort((a, b) => a.y - b.y);
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
-
         this.floatingTexts.forEach(ft => ft.draw(this.ctx, this.camera.x, this.camera.y));
 
-        // 5. AIM LINE
         if (this.player) {
             this.ctx.globalAlpha = 1.0; 
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
@@ -678,8 +681,6 @@ class Game {
             this.ctx.lineTo(this.mouseX, this.mouseY);
             this.ctx.stroke();
         }
-
-        requestAnimationFrame(() => this.loop());
     }
 }
 
