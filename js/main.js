@@ -1,5 +1,6 @@
 // js/main.js
 import { performAttack } from './combat/attacks.js';
+import { performSuper } from './combat/supers.js'; // <--- RESTORED!
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
@@ -17,19 +18,19 @@ class FloatingText {
         this.x = x;
         this.y = y;
         this.color = color;
-        this.life = 60; 
-        this.vy = -1;   
+        this.life = 40; 
+        this.vy = -2;   
     }
     update() {
         this.y += this.vy;
         this.life--;
     }
     draw(ctx, camX, camY) {
-        ctx.globalAlpha = Math.max(0, this.life / 60);
+        ctx.globalAlpha = Math.max(0, this.life / 40);
         ctx.fillStyle = this.color;
-        ctx.font = 'bold 20px Arial';
+        ctx.font = 'bold 24px Arial';
         ctx.strokeStyle = 'black';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.strokeText(this.text, this.x - camX, this.y - camY);
         ctx.fillText(this.text, this.x - camX, this.y - camY);
         ctx.globalAlpha = 1.0;
@@ -48,16 +49,71 @@ class Projectile {
         this.owner = owner;
         this.active = true;
         this.distanceTravelled = 0;
+        
+        // NEW: Wall Break Logic
+        this.wallBreaker = custom.wallBreaker || false;
+        
         Object.assign(this, custom);
     }
 
     update() {
         if (!this.active) return;
+        
         this.x += Math.cos(this.angle) * this.speed;
         this.y += Math.sin(this.angle) * this.speed;
         this.distanceTravelled += this.speed;
+        
         if (this.distanceTravelled >= this.range) this.active = false;
-        if (this.owner.game.checkWallCollision(this.x, this.y)) this.active = false;
+        
+        // --- WALL COLLISION (With Breaking) ---
+        if (this.owner.game.checkWallCollision(this.x, this.y)) {
+            if (this.wallBreaker) {
+                // Destroy the wall and Keep going!
+                this.owner.game.destroyWall(this.x, this.y);
+            } else {
+                // Normal bullet stops
+                this.active = false;
+            }
+        }
+
+        this.checkEntityHit();
+    }
+
+    checkEntityHit() {
+        if (!this.active) return;
+        const entities = this.owner.game.entities;
+        
+        for (let e of entities) {
+            if (e === this.owner) continue; 
+            
+            if (this.x > e.x && this.x < e.x + 40 &&
+                this.y > e.y && this.y < e.y + 40) {
+                
+                this.active = false;
+                e.hp -= this.dmg;
+                
+                this.owner.game.showFloatText("-" + this.dmg, e.x, e.y - 20, '#fff');
+
+                // CHARGE SUPER
+                if (this.owner.superCharge < 100) {
+                    this.owner.superCharge += 20; 
+                    if (this.owner.superCharge >= 100) {
+                        this.owner.superCharge = 100;
+                        if (this.owner.isPlayer) {
+                             this.owner.game.showFloatText("SUPER READY!", this.owner.x, this.owner.y - 50, '#f1c40f');
+                             this.owner.game.updateSuperUI(true); 
+                        }
+                    }
+                }
+
+                if (e.hp <= 0) {
+                     this.owner.game.showFloatText("ELIMINATED!", e.x, e.y, '#e74c3c');
+                     const idx = entities.indexOf(e);
+                     if (idx > -1) entities.splice(idx, 1);
+                }
+                return; 
+            }
+        }
     }
 
     draw(ctx, camX, camY) {
@@ -69,7 +125,6 @@ class Projectile {
     }
 }
 
-// 2. ASSET COLORS
 const ASSETS = {
     'wall':  '#d35400', 
     'bush':  '#2ecc71', 
@@ -99,25 +154,19 @@ class Entity {
         this.patrolTimer = 0;
         this.lastMoveX = 1; 
 
-        // --- AMMO SYSTEM (FORCE NUMBERS) ---
+        // STATS
         const stats = data.atk || {};
-        
-        // We force these to be numbers to prevent "Text" errors
         this.maxAmmo = 3; 
         if (stats.ammo) this.maxAmmo = Number(stats.ammo);
-
         this.currentAmmo = this.maxAmmo;
         
-        // If your brawler list is old, this defaults to 1000ms (1 second)
         this.reloadSpeed = 1000; 
         if (stats.reload) {
-            // If you have old stats (like '60 frames'), multiply by 16 to get ms
             let r = Number(stats.reload);
             this.reloadSpeed = (r < 100) ? r * 16 : r;
         }
 
-        this.shotCooldown = 200; // Fast default cooldown
-        if (stats.cd) this.shotCooldown = Number(stats.cd);
+        this.shotCooldown = Number(stats.cd) || 200;
         
         this.reloadTimer = 0;
         this.lastAttackTime = 0;
@@ -126,7 +175,6 @@ class Entity {
     }
 
     update() {
-        // Regen Ammo
         if (this.currentAmmo < this.maxAmmo) {
             this.reloadTimer += 16.6; 
             if (this.reloadTimer >= this.reloadSpeed) {
@@ -223,13 +271,11 @@ class Entity {
             else return; 
         }
 
-        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.beginPath();
         ctx.ellipse(screenX + 20, screenY + 45, 15, 6, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // DRAW EMOJI
         ctx.fillStyle = '#000000'; 
         ctx.font = '40px Arial';
         ctx.textAlign = 'center';
@@ -246,7 +292,7 @@ class Entity {
         }
         ctx.restore();
 
-        // Health Bar
+        // HP Bar
         ctx.globalAlpha = 1.0;
         ctx.fillStyle = '#333';
         ctx.fillRect(screenX, screenY - 15, 40, 6); 
@@ -290,20 +336,11 @@ class Game {
             this.mouseY = e.clientY - rect.top;
         });
 
-        // *** SHOOTING LOGIC (DEBUGGED) ***
         window.addEventListener('mousedown', () => {
             if (this.state === 'GAME' && this.player) {
                 const now = Date.now();
-                
-                // Debug log to see exactly what the game thinks
-                console.log("Click! Ammo:", this.player.currentAmmo, "Cooldown:", now - this.player.lastAttackTime);
+                if (now - this.player.lastAttackTime < this.player.shotCooldown) return;
 
-                // 1. COOLDOWN CHECK
-                if (now - this.player.lastAttackTime < this.player.shotCooldown) {
-                     return; // Silently fail if clicking too fast
-                }
-
-                // 2. AMMO CHECK
                 if (this.player.currentAmmo >= 1) {
                     performAttack(this.player, this, this.mouseX, this.mouseY);
                     this.player.currentAmmo--;
@@ -321,6 +358,21 @@ class Game {
         this.floatingTexts.push(new FloatingText(text, x, y, color));
     }
 
+    updateSuperUI(isReady) {
+        const btn = document.getElementById('super-btn');
+        if (btn) {
+            if (isReady) {
+                btn.style.boxShadow = "0 0 20px #f1c40f, inset 0 0 10px white";
+                btn.style.borderColor = "white";
+                btn.style.transform = "scale(1.1)";
+            } else {
+                btn.style.boxShadow = "0 0 15px #f1c40f";
+                btn.style.borderColor = "white";
+                btn.style.transform = "scale(1)";
+            }
+        }
+    }
+
     init() {
         console.log("ENGINE LINKED. ASSETS READY.");
         this.setupMenu();
@@ -335,6 +387,22 @@ class Game {
         return false;
     }
 
+    // NEW: Destroy Walls (For Supers)
+    destroyWall(x, y) {
+        for (let i = this.walls.length - 1; i >= 0; i--) {
+            let w = this.walls[i];
+            // Check if projectile x,y is inside this wall
+            if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
+                if (w.type === 'wall' || w.type === 'box') {
+                    // Create destruction effect (optional)
+                    this.showFloatText("CRASH!", w.x, w.y, '#fff');
+                    this.walls.splice(i, 1); // Delete wall
+                }
+                return;
+            }
+        }
+    }
+
     loadAssets() {
         return Promise.resolve();
     }
@@ -346,7 +414,7 @@ class Game {
         const btnPlay = document.getElementById('play-btn');
         const btnSuper = document.getElementById('super-btn'); 
 
-        // WIRE UP SUPER BUTTON
+        // SUPER BUTTON CLICK
         if (btnSuper) {
             btnSuper.onmousedown = (e) => {
                 e.preventDefault(); 
@@ -355,8 +423,12 @@ class Game {
                 if (this.state === 'GAME' && this.player) {
                     if (this.player.superCharge >= 100) {
                         this.showFloatText("SUPER USED!", this.player.x + 20, this.player.y - 20, '#f1c40f');
-                        // TODO: Implement actual super attack logic here
+                        
+                        // *** EXECUTE SUPER ***
+                        performSuper(this.player, this, this.mouseX, this.mouseY);
+                        
                         this.player.superCharge = 0; 
+                        this.updateSuperUI(false); 
                     } else {
                         this.showFloatText("NOT READY!", this.player.x + 20, this.player.y - 20, '#95a5a6');
                     }
@@ -394,7 +466,6 @@ class Game {
         for (let i = 1; i <= 3; i++) {
             const el = document.getElementById('ammo' + i);
             if (el) {
-                // IMPORTANT: Ensure we compare numbers
                 if (i <= this.player.currentAmmo) {
                     el.style.backgroundColor = '#e67e22'; 
                     el.style.boxShadow = "0 0 5px #e67e22";
