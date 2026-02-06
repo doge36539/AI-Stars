@@ -243,7 +243,27 @@ class Game {
         // SAVE BUTTON REF
         this.btnSuper = document.getElementById('super-btn');
 
-        window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
+        // 1. KEY DOWN (Tracks movement AND checks for 'E')
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            this.keys[key] = true;
+
+            // FIRE SUPER WITH 'E'
+            if (key === 'e' && this.state === 'GAME') {
+                if (this.player && this.player.superCharge >= 100) {
+                    performSuper(this.player, this, this.mouseX, this.mouseY);
+                    
+                    // Reset Charge
+                    this.player.superCharge = 0;
+                    
+                    // Turn off button glow
+                    if (this.btnSuper) {
+                        this.btnSuper.style.filter = "grayscale(100%)";
+                        this.btnSuper.style.animation = "none";
+                    }
+                }
+            }
+        });
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
 
         window.addEventListener('mousemove', (e) => {
