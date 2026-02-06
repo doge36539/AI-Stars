@@ -397,8 +397,11 @@ class Game {
         this.setupMenu();
     }
 
-    checkWallCollision(x, y) {
+    checkWallCollision(x, y, isProjectile = false) {
         for (let w of this.walls) {
+            // IF projectile AND wall is water -> Ignore it (Fly over)
+            if (isProjectile && w.type === 'water') continue;
+
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
                 return true;
             }
