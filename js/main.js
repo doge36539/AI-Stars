@@ -1,6 +1,6 @@
 // js/main.js
 import { performAttack } from './combat/attacks.js';
-import { performSuper } from './combat/supers.js'; // <--- RESTORED!
+import { performSuper } from './combat/supers.js'; 
 import { BRAWLERS } from './data/brawler.js'; 
 import { MAP_SKULL_CREEK, MAP_OUT_OPEN } from './data/maps.js';
 
@@ -49,10 +49,7 @@ class Projectile {
         this.owner = owner;
         this.active = true;
         this.distanceTravelled = 0;
-        
-        // NEW: Wall Break Logic
         this.wallBreaker = custom.wallBreaker || false;
-        
         Object.assign(this, custom);
     }
 
@@ -65,13 +62,10 @@ class Projectile {
         
         if (this.distanceTravelled >= this.range) this.active = false;
         
-        // --- WALL COLLISION (With Breaking) ---
         if (this.owner.game.checkWallCollision(this.x, this.y)) {
             if (this.wallBreaker) {
-                // Destroy the wall and Keep going!
                 this.owner.game.destroyWall(this.x, this.y);
             } else {
-                // Normal bullet stops
                 this.active = false;
             }
         }
@@ -94,15 +88,20 @@ class Projectile {
                 
                 this.owner.game.showFloatText("-" + this.dmg, e.x, e.y - 20, '#fff');
 
-                // CHARGE SUPER
+                // *** NEW: CHARGE SUPER & UPDATE BUTTON PROGRESS ***
                 if (this.owner.superCharge < 100) {
-                    this.owner.superCharge += 20; 
-                    if (this.owner.superCharge >= 100) {
-                        this.owner.superCharge = 100;
-                        if (this.owner.isPlayer) {
+                    this.owner.superCharge += 20; // 5 hits = 100%
+                    
+                    // Cap it at 100
+                    if (this.owner.superCharge > 100) this.owner.superCharge = 100;
+
+                    if (this.owner.isPlayer) {
+                         // Update the visual button fill
+                         this.owner.game.updateSuperButton(this.owner.superCharge);
+
+                         if (this.owner.superCharge >= 100) {
                              this.owner.game.showFloatText("SUPER READY!", this.owner.x, this.owner.y - 50, '#f1c40f');
-                             this.owner.game.updateSuperUI(true); 
-                        }
+                         }
                     }
                 }
 
@@ -132,8 +131,6 @@ const ASSETS = {
     'box':   '#8e44ad', 
     'floor': '#f3e5ab'  
 };
-
-const IMAGES = {}; 
 
 class Entity {
     constructor(data, x, y, isPlayer, game) {
@@ -358,18 +355,24 @@ class Game {
         this.floatingTexts.push(new FloatingText(text, x, y, color));
     }
 
-    updateSuperUI(isReady) {
+    // *** NEW: UPDATED BUTTON FILL LOGIC ***
+    updateSuperButton(percent) {
         const btn = document.getElementById('super-btn');
-        if (btn) {
-            if (isReady) {
-                btn.style.boxShadow = "0 0 20px #f1c40f, inset 0 0 10px white";
-                btn.style.borderColor = "white";
-                btn.style.transform = "scale(1.1)";
-            } else {
-                btn.style.boxShadow = "0 0 15px #f1c40f";
-                btn.style.borderColor = "white";
-                btn.style.transform = "scale(1)";
-            }
+        if (!btn) return;
+
+        if (percent >= 100) {
+            // FULLY CHARGED STATE
+            btn.classList.add('super-charged');
+            btn.innerText = "☠️";
+            btn.style.background = ""; // Clear inline gradient so CSS animation works
+        } else {
+            // FILLING STATE
+            btn.classList.remove('super-charged');
+            btn.innerText = "SUPER";
+            
+            // LIQUID FILL EFFECT (Yellow rises from bottom)
+            // Example: "linear-gradient(to top, #f1c40f 20%, #444 20%)"
+            btn.style.background = `linear-gradient(to top, #f1c40f ${percent}%, #444 ${percent}%)`;
         }
     }
 
@@ -387,16 +390,13 @@ class Game {
         return false;
     }
 
-    // NEW: Destroy Walls (For Supers)
     destroyWall(x, y) {
         for (let i = this.walls.length - 1; i >= 0; i--) {
             let w = this.walls[i];
-            // Check if projectile x,y is inside this wall
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
                 if (w.type === 'wall' || w.type === 'box') {
-                    // Create destruction effect (optional)
                     this.showFloatText("CRASH!", w.x, w.y, '#fff');
-                    this.walls.splice(i, 1); // Delete wall
+                    this.walls.splice(i, 1);
                 }
                 return;
             }
@@ -424,11 +424,11 @@ class Game {
                     if (this.player.superCharge >= 100) {
                         this.showFloatText("SUPER USED!", this.player.x + 20, this.player.y - 20, '#f1c40f');
                         
-                        // *** EXECUTE SUPER ***
                         performSuper(this.player, this, this.mouseX, this.mouseY);
                         
+                        // RESET SUPER
                         this.player.superCharge = 0; 
-                        this.updateSuperUI(false); 
+                        this.updateSuperButton(0); // Reset visual to empty
                     } else {
                         this.showFloatText("NOT READY!", this.player.x + 20, this.player.y - 20, '#95a5a6');
                     }
@@ -521,7 +521,15 @@ class Game {
         this.state = 'GAME';
         if (this.mode === 'knockout') this.loadMap(MAP_OUT_OPEN);
         else this.loadMap(MAP_SKULL_CREEK);
+        
         this.loop();
+        
+        // Reset UI on start
+        if(this.player) {
+            this.player.superCharge = 0;
+            this.updateSuperButton(0); 
+            this.updateAmmoUI();
+        }
     }
 
     loadMap(originalAscii) {
@@ -565,8 +573,6 @@ class Game {
             let enemy = new Entity(BRAWLERS[0], this.mapWidth - 300, 300 + (i*200), false, this);
             this.entities.push(enemy);
         }
-        
-        this.updateAmmoUI(); 
     }
 
     updateCamera() {
