@@ -293,6 +293,39 @@ class Entity {
         let hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillRect(screenX, screenY - 15, hpPercent * 40, 6);
     }
+    checkGasDamage(dt) {
+        const gas = this.game.gas;
+        if (!gas || !gas.active) return;
+
+        // Check if OUTSIDE the safe zone
+        const inSafeZone = 
+            this.x > gas.inset && 
+            this.x < this.game.mapWidth - gas.inset &&
+            this.y > gas.inset && 
+            this.y < this.game.mapHeight - gas.inset;
+
+        if (!inSafeZone) {
+            this.gasTimer += (16.6 * dt);
+            
+            // Trigger damage every 1 second (1000ms)
+            if (this.gasTimer > 1000) { 
+                // *** NEW: 20% DAMAGE LOGIC ***
+                const dmg = Math.floor(this.maxHp * 0.20); // 20% of Max HP
+                this.hp -= dmg;
+                
+                this.game.showFloatText("-" + dmg, this.x, this.y - 40, '#2ecc71');
+                this.gasTimer = 0;
+                
+                if (this.hp <= 0) {
+                     this.game.showFloatText("LOST IN SMOKE", this.x, this.y, '#e74c3c');
+                     const idx = this.game.entities.indexOf(this);
+                     if (idx > -1) this.game.entities.splice(idx, 1);
+                }
+            }
+        } else {
+            this.gasTimer = 0; 
+        }
+    }
 }
 
 class Game {
