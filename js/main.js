@@ -149,7 +149,6 @@ class Projectile {
         ctx.arc(this.x - camX, this.y - camY, size, 0, Math.PI * 2);
         ctx.fill();
     }
-}
 
     update() {
         if (!this.active) return;
