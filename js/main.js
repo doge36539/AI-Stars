@@ -20,12 +20,136 @@ class Projectile {
         this.angle = angle;
         this.speed = speed;
         this.range = range;
+        this.baseDmg = dmg;
         this.dmg = dmg;
         this.owner = owner;
         this.active = true;
         this.distanceTravelled = 0;
+        
+        // MINE / TRAP LOGIC
+        this.isTrap = false;
+        this.trapTimer = 0;
+        this.trapDuration = 3000; // 3 Seconds for Tick mines
+
         Object.assign(this, custom);
     }
+
+    update() {
+        if (!this.active) return;
+
+        // --- TRAP STATE (Waiting on ground) ---
+        if (this.isTrap) {
+            this.trapTimer += 16; // Approx 1 frame
+            if (this.trapTimer > this.trapDuration) this.active = false; // Expire
+            this.checkCollisions(); // Check if anyone stepped on it
+            return; // Don't move
+        }
+
+        // --- MOVING STATE ---
+        this.x += Math.cos(this.angle) * this.speed;
+        this.y += Math.sin(this.angle) * this.speed;
+        this.distanceTravelled += this.speed;
+
+        // PIPER SCALING
+        if (this.type === 'piper') {
+            const progress = Math.min(1, this.distanceTravelled / this.range);
+            this.dmg = this.baseDmg * (0.5 + (0.5 * progress));
+            const green = Math.floor(215 * (1 - progress));
+            this.color = `rgb(255, ${green}, 0)`;
+            this.size = 6 + (progress * 6);
+        }
+
+        // RANGE CHECK
+        if (this.distanceTravelled >= this.range) {
+            // If it's a Mine or Puddle, it doesn't die, it lands!
+            if (this.type === 'lob_mine') {
+                this.isTrap = true; // Become a mine
+                this.color = '#ff0000'; // Turn red to warn
+                return;
+            } 
+            if (this.type === 'lob_puddle') {
+                // Barley puddle Logic could go here (spawn a Zone entity)
+                // For now, simple impact damage
+                this.active = false;
+            } else {
+                this.active = false;
+            }
+        }
+
+        // WALL CHECK (Lobs fly over walls!)
+        if (!this.type || !this.type.includes('lob')) {
+             if (this.owner.game.checkWallCollision(this.x, this.y)) {
+                if (this.bounce) {
+                    // Simple bounce logic (Reverse angle)
+                    this.angle = this.angle + Math.PI / 2; 
+                } else {
+                    this.active = false;
+                }
+             }
+        }
+
+        this.checkCollisions();
+    }
+
+    checkCollisions() {
+        // Don't hit enemies while "Flying" in the air (Lobs)
+        if (this.type && this.type.includes('lob') && !this.isTrap) return;
+
+        this.owner.game.entities.forEach(e => {
+            if (e === this.owner || e.hp <= 0) return;
+            
+            const dist = Math.hypot(e.x - this.x, e.y - this.y);
+            let hitBox = this.size ? this.size * 2 : 25;
+            if (this.isTrap) hitBox = 40; // Mines have bigger triggers
+
+            if (dist < hitBox) {
+                // HIT!
+                e.hp -= this.dmg;
+                
+                // APPLY POISON
+                if (this.type === 'poison') {
+                    e.poisoned = 200; // Poisoned for 200 frames
+                }
+
+                if (!this.pierce) this.active = false;
+
+                // CHARGE SUPER
+                if (this.owner.isPlayer) {
+                    this.owner.superCharge = Math.min(100, this.owner.superCharge + 10);
+                    // Update Button Visuals (omitted for brevity, same as before)
+                    const btn = document.getElementById('super-btn');
+                    if (btn && this.owner.superCharge >= 100) {
+                        btn.style.filter = "none";
+                        btn.style.animation = "pulse 0.5s infinite";
+                    }
+                }
+
+                if (e.hp <= 0) e.x = -1000;
+            }
+        });
+    }
+
+    draw(ctx, camX, camY) {
+        ctx.fillStyle = this.color || '#f1c40f';
+        let size = this.size || 5;
+
+        // Visual Z-Axis for Lobs (Make it look like it goes up and down)
+        if (this.type && this.type.includes('lob') && !this.isTrap) {
+            const progress = this.distanceTravelled / this.range;
+            const height = Math.sin(progress * Math.PI) * 30; // 30px high arc
+            size += (height / 3); // Make bigger when high up
+        }
+        
+        if (this.isTrap) {
+            // Pulsing Mine
+            size = 8 + Math.sin(Date.now() / 100) * 2;
+        }
+
+        ctx.beginPath();
+        ctx.arc(this.x - camX, this.y - camY, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
 
     update() {
         if (!this.active) return;
