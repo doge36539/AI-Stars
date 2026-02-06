@@ -328,6 +328,28 @@ class Game {
         }
     }
 
+    const btnSuper = document.getElementById('super-btn');
+    if (btnSuper) {
+        btnSuper.onclick = (e) => {
+            // Stop the click from firing the "Shoot" listener on the window
+            e.stopPropagation(); 
+
+            if (this.player && this.player.superCharge >= 100) {
+                // Aim at mouse
+                performSuper(this.player, this, this.mouseX, this.mouseY);
+                
+                // Drain Charge
+                this.player.superCharge = 0;
+                
+                // Update Button Look
+                btnSuper.style.filter = "grayscale(100%)";
+                btnSuper.style.animation = "none";
+            } else {
+                console.log("Super not ready yet!");
+            }
+        };
+    }
+
     openMenu() {
         document.getElementById('screen-home').style.display = 'none';
         const selectScreen = document.getElementById('screen-select');
