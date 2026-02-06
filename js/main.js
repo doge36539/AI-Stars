@@ -413,15 +413,16 @@ class Game {
         for (let i = this.walls.length - 1; i >= 0; i--) {
             let w = this.walls[i];
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
+                // *** FIX: Only break 'wall' or 'box', NEVER 'bedrock' ***
                 if (w.type === 'wall' || w.type === 'box') {
                     this.showFloatText("CRASH!", w.x, w.y, '#fff');
                     this.walls.splice(i, 1);
                 }
+                // If it's 'bedrock', we do nothing (it stays forever)
                 return;
             }
         }
     }
-
     loadAssets() {
         return Promise.resolve();
     }
