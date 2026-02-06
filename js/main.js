@@ -609,7 +609,17 @@ class Game {
         this.camera.y = Math.max(0, Math.min(targetY, Math.max(0, maxCamY)));
     }
 
-    drawWall(x, y) {
+    drawWall(x, y, type) {
+        // Bedrock is slightly darker to show it's unbreakable
+        if (type === 'bedrock') {
+            this.ctx.fillStyle = '#a04000'; // Darker Orange
+            this.ctx.fillRect(x, y, 50, 50);
+            this.ctx.fillStyle = '#6e2c00'; // Dark border
+            this.ctx.fillRect(x + 5, y + 5, 40, 40);
+            return;
+        }
+
+        // Normal Walls
         this.ctx.fillStyle = '#d35400'; 
         this.ctx.fillRect(x, y, 50, 40);
         this.ctx.fillStyle = '#a04000'; 
