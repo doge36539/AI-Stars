@@ -103,9 +103,7 @@ class Projectile {
                 }
 
                 if (e.hp <= 0) {
-                     this.owner.game.showFloatText("ELIMINATED!", e.x, e.y, '#e74c3c');
-                     const idx = entities.indexOf(e);
-                     if (idx > -1) entities.splice(idx, 1);
+                     this.owner.game.handleDeath(e, this.owner);
                 }
                 return; 
             }
@@ -238,8 +236,7 @@ class Entity {
                 
                 if (this.hp <= 0) {
                      this.game.showFloatText("LOST IN SMOKE", this.x, this.y, '#e74c3c');
-                     const idx = this.game.entities.indexOf(this);
-                     if (idx > -1) this.game.entities.splice(idx, 1);
+                     this.game.handleDeath(this, null);
                 }
             }
         } else {
@@ -469,6 +466,14 @@ class Game {
         const btnKnock = document.getElementById('btn-knockout');
         const btnPlay = document.getElementById('play-btn');
         const btnSuper = document.getElementById('super-btn'); 
+        const btnMenu = document.getElementById('btn-menu'); // NEW: Main Menu Button
+
+        // RESET GAME LISTENER
+        if (btnMenu) {
+            btnMenu.onclick = () => {
+                this.resetGame();
+            };
+        }
 
         if (btnSuper) {
             btnSuper.onmousedown = (e) => {
@@ -501,6 +506,25 @@ class Game {
                 this.openMenu();
             };
         }
+    }
+
+    // *** NEW: RESET GAME LOGIC ***
+    resetGame() {
+        document.getElementById('screen-result').classList.add('hidden');
+        document.getElementById('screen-home').style.display = 'block';
+        
+        this.state = 'MENU';
+        this.entities = [];
+        this.projectiles = [];
+        this.floatingTexts = [];
+        this.walls = [];
+        this.bushes = [];
+        this.player = null;
+        this.camera = { x: 0, y: 0 };
+        
+        // Clear Canvas
+        this.ctx.fillStyle = '#222';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     updateAmmoUI() {
@@ -590,6 +614,54 @@ class Game {
             damage: 1000,
             delay: 5000 // 5 Seconds wait
         };
+        
+        this.updateAliveUI();
+    }
+
+    // *** UPDATED: WIN/LOSE LOGIC ***
+    handleDeath(deadEntity, killer) {
+        if (deadEntity.dead) return;
+        deadEntity.dead = true;
+        
+        this.showFloatText("ELIMINATED!", deadEntity.x, deadEntity.y, '#e74c3c');
+        const idx = this.entities.indexOf(deadEntity);
+        if (idx > -1) this.entities.splice(idx, 1);
+        
+        this.updateAliveUI();
+
+        // Check Win/Loss
+        if (deadEntity.isPlayer) {
+            // LOSE
+            setTimeout(() => this.showResult(false), 1000);
+        } else if (this.entities.length === 1 && this.entities[0].isPlayer) {
+            // WIN
+            setTimeout(() => this.showResult(true), 1000);
+        }
+    }
+
+    showResult(victory) {
+        this.state = 'GAMEOVER';
+        const screen = document.getElementById('screen-result');
+        const title = document.getElementById('result-title');
+        const msg = document.getElementById('result-msg');
+        
+        screen.classList.remove('hidden');
+        screen.style.display = 'flex';
+
+        if (victory) {
+            title.innerText = "VICTORY!";
+            title.style.color = "#f1c40f";
+            msg.innerText = "Rank #1";
+        } else {
+            title.innerText = "DEFEAT";
+            title.style.color = "#e74c3c";
+            msg.innerText = `Rank #${this.entities.length + 1}`;
+        }
+    }
+
+    updateAliveUI() {
+        const el = document.getElementById('hud-alive');
+        if (el) el.innerText = `Brawlers: ${this.entities.length}`;
     }
 
     loadMap(originalAscii) {
