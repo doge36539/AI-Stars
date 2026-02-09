@@ -2,45 +2,112 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brawl.io Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Stars V1.8</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui-layer">
-        <div id="hud-alive">Brawlers Left: 10</div>
-        <div id="hud-killfeed"></div>
-    </div>
 
-    <div id="screen-home">
-        <h1>BRAWL.IO</h1>
-        <button id="btn-showdown">SOLO SHOWDOWN</button>
-        <button id="btn-knockout">KNOCKOUT</button>
-    </div>
-
-    <div id="screen-select" class="hidden">
-        <h2>SELECT BRAWLER</h2>
-        <div id="grid"></div>
-        <div id="brawler-desc">Select a brawler...</div>
-        <button id="play-btn" disabled>PLAY</button>
-    </div>
-
-    <div id="screen-result" class="hidden">
-        <h1 id="result-title">VICTORY!</h1>
-        <div id="result-message">Rank #1</div>
-        <button id="btn-menu">MAIN MENU</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="controls">
-        <div id="ammo-bar">
-            <div class="slot" id="ammo1"></div>
-            <div class="slot" id="ammo2"></div>
-            <div class="slot" id="ammo3"></div>
+    <div id="game-wrapper">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <div id="hud">
+                <div id="ammo-bar-container">
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo1"></div></div>
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo2"></div></div>
+                    <div class="ammo-slot"><div class="ammo-filled" id="ammo3"></div></div>
+                </div>
+                <div id="super-btn">SUPER</div>
+            </div>
         </div>
-        <div id="super-btn">SUPER</div>
+
+        <div id="screen-home" class="screen">
+            <h1>AI Stars 1.8 Super Update</h1>
+            <div style="display:flex; gap:20px">
+                <button class="btn btn-yel" id="btn-showdown">SKULL CREEK (SOLO)</button>
+                <button class="btn btn-red" id="btn-knockout">OUT IN OPEN (3v3)</button>
+            </div>
+        </div>
+
+        <div id="screen-select" class="screen hidden">
+            <h2>SELECT BRAWLER</h2>
+            <div class="grid" id="grid"></div>
+            <div id="brawler-desc"></div>
+            <button class="btn btn-yel" id="play-btn">BRAWL!</button>
+        </div>
     </div>
+
+    <script>
+        (function() {
+            // 1. Create the Console Box (Hidden by default)
+            let debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-console';
+            Object.assign(debugDiv.style, {
+                position: 'fixed', top: '0', left: '0',
+                width: '100%', height: '50vh', 
+                background: 'rgba(0,0,0,0.95)', color: '#0f0', 
+                zIndex: '999999', overflowY: 'scroll',
+                display: 'none', // Start hidden
+                borderBottom: '2px solid red',
+                fontFamily: 'monospace', fontSize: '12px', padding: '10px'
+            });
+            document.body.appendChild(debugDiv);
+
+            // 2. Create the HUGE Red Test Button
+            const btn = document.createElement('button');
+            btn.innerText = '🐞 DEBUG';
+            Object.assign(btn.style, {
+                position: 'fixed', top: '10px', left: '10px',
+                zIndex: '1000000', // Higher than everything!
+                width: '100px', height: '50px',
+                background: 'red', color: 'white', fontWeight: 'bold',
+                border: '2px solid white', borderRadius: '8px'
+            });
+            document.body.appendChild(btn);
+
+            // 3. The Toggle Function
+            function toggle() {
+                if (debugDiv.style.display === 'none') {
+                    debugDiv.style.display = 'block';
+                    console.log("Debug Menu Opened");
+                } else {
+                    debugDiv.style.display = 'none';
+                }
+            }
+
+            // 4. Force Click Listeners (Touch + Click)
+            btn.onclick = toggle;
+            btn.ontouchend = function(e) {
+                e.preventDefault(); // Stop ghost clicks on phone
+                toggle();
+            };
+
+            // 5. Hijack Console
+            const oldLog = console.log;
+            const oldErr = console.error;
+
+            console.log = function(...args) {
+                oldLog.apply(console, args);
+                const msg = document.createElement('div');
+                msg.innerText = '> ' + args.join(' ');
+                msg.style.borderBottom = '1px solid #333';
+                debugDiv.appendChild(msg);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            };
+
+            console.error = function(...args) {
+                oldErr.apply(console, args);
+                const msg = document.createElement('div');
+                msg.innerText = 'ERR: ' + args.join(' ');
+                msg.style.color = '#ff5555';
+                debugDiv.appendChild(msg);
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+            };
+
+            console.log("System Ready. Click the Red Button!");
+        })();
+    </script>
 
     <script type="module" src="js/main.js"></script>
 </body>
