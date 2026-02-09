@@ -63,7 +63,8 @@ class Projectile {
         
         if (this.distanceTravelled >= this.range) this.active = false;
         
-        if (this.owner.game.checkWallCollision(this.x, this.y)) {
+        // Pass 'true' to indicate this is a projectile (ignores water)
+        if (this.owner.game.checkWallCollision(this.x, this.y, true)) {
             if (this.wallBreaker) {
                 this.owner.game.destroyWall(this.x, this.y);
             } else {
@@ -89,6 +90,7 @@ class Projectile {
                 
                 this.owner.game.showFloatText("-" + this.dmg, e.x, e.y - 20, '#fff');
 
+                // Charge Super
                 if (this.owner.superCharge < 100) {
                     this.owner.superCharge += 20; 
                     if (this.owner.superCharge > 100) this.owner.superCharge = 100;
@@ -164,6 +166,7 @@ class Entity {
         this.lastAttackTime = 0;
         this.superCharge = 0; 
         this.superMax = 100;
+        this.gasTimer = 0;
     }
 
     update(dt) {
@@ -174,11 +177,12 @@ class Entity {
                 this.currentAmmo++;
                 this.reloadTimer = 0;
             }
-            // Update UI every frame to animate the bar
             if (this.isPlayer) this.game.updateAmmoUI(); 
         }
 
+        this.checkGasDamage(dt);
         this.checkBush();
+
         let dx = 0;
         let dy = 0;
 
@@ -210,6 +214,37 @@ class Entity {
         }
 
         if (dx !== 0 || dy !== 0) this.move(dx * dt, dy * dt);
+    }
+
+    checkGasDamage(dt) {
+        const gas = this.game.gas;
+        if (!gas || !gas.active) return;
+
+        const inSafeZone = 
+            this.x > gas.inset && 
+            this.x < this.game.mapWidth - gas.inset &&
+            this.y > gas.inset && 
+            this.y < this.game.mapHeight - gas.inset;
+
+        if (!inSafeZone) {
+            this.gasTimer += (16.6 * dt);
+            if (this.gasTimer > 1000) { 
+                // DEAL 20% MAX HP DAMAGE
+                const dmg = Math.floor(this.maxHp * 0.20);
+                this.hp -= dmg;
+                
+                this.game.showFloatText("-" + dmg, this.x, this.y - 40, '#2ecc71');
+                this.gasTimer = 0;
+                
+                if (this.hp <= 0) {
+                     this.game.showFloatText("LOST IN SMOKE", this.x, this.y, '#e74c3c');
+                     const idx = this.game.entities.indexOf(this);
+                     if (idx > -1) this.game.entities.splice(idx, 1);
+                }
+            }
+        } else {
+            this.gasTimer = 0; 
+        }
     }
 
     hasReachedTarget() {
@@ -321,15 +356,18 @@ class Game {
         this.targetFPS = 60;
         this.timestep = 1000 / 60; 
 
-        // *** UPDATED KEY LISTENER FOR 'E' ***
+        this.gas = {
+            active: false,
+            inset: 0,
+            speed: 15,
+            damage: 1000,
+            delay: 5000
+        };
+
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             this.keys[key] = true;
-
-            // Trigger Super on E press
-            if (key === 'e') {
-                this.tryUseSuper();
-            }
+            if (key === 'e') this.tryUseSuper();
         });
         
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
@@ -362,14 +400,13 @@ class Game {
         this.floatingTexts.push(new FloatingText(text, x, y, color));
     }
 
-    // *** UPDATED: NO SKULL LOGO ***
     updateSuperButton(percent) {
         const btn = document.getElementById('super-btn');
         if (!btn) return;
 
         if (percent >= 100) {
             btn.classList.add('super-charged');
-            btn.innerText = "SUPER"; // Just text, no skull
+            btn.innerText = "SUPER"; 
             btn.style.background = ""; 
         } else {
             btn.classList.remove('super-charged');
@@ -378,7 +415,6 @@ class Game {
         }
     }
 
-    // *** NEW: Helper to fire Super (used by Button AND 'E' Key) ***
     tryUseSuper() {
         if (this.state === 'GAME' && this.player) {
             if (this.player.superCharge >= 100) {
@@ -399,7 +435,7 @@ class Game {
 
     checkWallCollision(x, y, isProjectile = false) {
         for (let w of this.walls) {
-            // IF projectile AND wall is water -> Ignore it (Fly over)
+            // Projectiles fly over water
             if (isProjectile && w.type === 'water') continue;
 
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
@@ -413,16 +449,16 @@ class Game {
         for (let i = this.walls.length - 1; i >= 0; i--) {
             let w = this.walls[i];
             if (x > w.x && x < w.x + w.w && y > w.y && y < w.y + w.h) {
-                // *** FIX: Only break 'wall' or 'box', NEVER 'bedrock' ***
+                // *** BEDROCK PROTECTION: Only break walls/boxes ***
                 if (w.type === 'wall' || w.type === 'box') {
                     this.showFloatText("CRASH!", w.x, w.y, '#fff');
                     this.walls.splice(i, 1);
                 }
-                // If it's 'bedrock', we do nothing (it stays forever)
                 return;
             }
         }
     }
+
     loadAssets() {
         return Promise.resolve();
     }
@@ -438,7 +474,7 @@ class Game {
             btnSuper.onmousedown = (e) => {
                 e.preventDefault(); 
                 e.stopPropagation(); 
-                this.tryUseSuper(); // Uses the shared function
+                this.tryUseSuper(); 
             };
         }
 
@@ -467,11 +503,9 @@ class Game {
         }
     }
 
-    // *** UPDATED: ANIMATED AMMO REFILL ***
     updateAmmoUI() {
         if (!this.player) return;
         
-        // Calculate how much of the "next" bar is filled (0% to 100%)
         let reloadPercent = 0;
         if (this.player.currentAmmo < this.player.maxAmmo) {
             reloadPercent = (this.player.reloadTimer / this.player.reloadSpeed) * 100;
@@ -481,16 +515,12 @@ class Game {
             const el = document.getElementById('ammo' + i);
             if (el) {
                 if (i <= this.player.currentAmmo) {
-                    // Full Ammo = Solid Orange
                     el.style.background = '#e67e22'; 
                     el.style.boxShadow = "0 0 5px #e67e22";
                 } else if (i === this.player.currentAmmo + 1) {
-                    // This is the bar currently reloading!
-                    // Animate it filling up from left to right
                     el.style.background = `linear-gradient(to right, #e67e22 ${reloadPercent}%, #333 ${reloadPercent}%)`;
                     el.style.boxShadow = "none";
                 } else {
-                    // Empty Ammo = Dark Grey
                     el.style.background = '#333'; 
                     el.style.boxShadow = "none";
                 }
@@ -537,7 +567,7 @@ class Game {
         });
     }
 
-startMatch() {
+    startMatch() {
         document.getElementById('screen-select').style.display = 'none';
         this.state = 'GAME';
         if (this.mode === 'knockout') this.loadMap(MAP_OUT_OPEN);
@@ -552,13 +582,13 @@ startMatch() {
             this.updateAmmoUI();
         }
 
-        // *** FIX: GAS DELAY ***
+        // RESET GAS
         this.gas = {
             active: true,
-            inset: 0,        // Start at Edge
-            speed: 15,       // Shrink speed
+            inset: 0,
+            speed: 15,
             damage: 1000,
-            delay: 5000      // 5000ms = 5 Seconds Wait
+            delay: 5000 // 5 Seconds wait
         };
     }
 
@@ -584,11 +614,11 @@ startMatch() {
                 let y = r * CONFIG.TILE_SIZE;
                 let tile = ascii[r][c];
 
-                // *** FIX: Separate Z (Bedrock) from # (Wall) ***
                 if (tile === '#') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' }); // Breakable
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'wall' });
                 } else if (tile === 'Z') {
-                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'bedrock' }); // Unbreakable
+                    // Bedrock (Unbreakable)
+                    this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'bedrock' });
                 } else if (tile === 'X') {
                     this.walls.push({ x, y, w: CONFIG.TILE_SIZE, h: CONFIG.TILE_SIZE, type: 'box' });
                 } else if (tile === 'W') {
@@ -619,13 +649,12 @@ startMatch() {
     }
 
     drawWall(x, y, type) {
-        // Bedrock is slightly darker to show it's unbreakable
         if (type === 'bedrock') {
-            this.ctx.fillStyle = '#a04000'; // Darker Orange
-            this.ctx.fillRect(x, y, 50, 50);
-            this.ctx.fillStyle = '#6e2c00'; // Dark border
-            this.ctx.fillRect(x + 5, y + 5, 40, 40);
-            return;
+             this.ctx.fillStyle = '#a04000'; // Darker
+             this.ctx.fillRect(x, y, 50, 50);
+             this.ctx.fillStyle = '#6e2c00'; // Dark border
+             this.ctx.fillRect(x + 5, y + 5, 40, 40);
+             return;
         }
 
         // Normal Walls
@@ -659,6 +688,22 @@ startMatch() {
         this.ctx.fill();
     }
 
+    drawGas() {
+        if (!this.gas.active || this.gas.inset <= 0) return;
+        const inset = this.gas.inset;
+        const mapW = this.mapWidth;
+        const mapH = this.mapHeight;
+        const cx = this.camera.x;
+        const cy = this.camera.y;
+
+        this.ctx.fillStyle = 'rgba(46, 204, 113, 0.4)'; 
+        
+        this.ctx.fillRect(0 - cx, 0 - cy, mapW, inset); // Top
+        this.ctx.fillRect(0 - cx, mapH - inset - cy, mapW, inset); // Bottom
+        this.ctx.fillRect(0 - cx, inset - cy, inset, mapH - (inset * 2)); // Left
+        this.ctx.fillRect(mapW - inset - cx, inset - cy, inset, mapH - (inset * 2)); // Right
+    }
+
     loop() {
         if (this.state !== 'GAME') return;
 
@@ -669,6 +714,17 @@ startMatch() {
         if (elapsed > 100) elapsed = 100;
         const dt = elapsed / this.timestep;
         this.lastTime = now;
+
+        // GAS UPDATE
+        if (this.gas.active) {
+            if (this.gas.delay > 0) {
+                this.gas.delay -= elapsed;
+            } else {
+                this.gas.inset += (this.gas.speed * dt) * 0.016; 
+                const maxInset = Math.min(this.mapWidth, this.mapHeight) / 2 - 150;
+                if (this.gas.inset > maxInset) this.gas.inset = maxInset;
+            }
+        }
 
         this.entities.forEach(e => e.update(dt)); 
         
@@ -686,6 +742,7 @@ startMatch() {
 
         this.updateCamera();
 
+        // RENDER
         this.ctx.globalAlpha = 1.0; 
         this.ctx.fillStyle = ASSETS.floor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -694,12 +751,16 @@ startMatch() {
             let drawX = w.x - this.camera.x;
             let drawY = w.y - this.camera.y;
             if (drawX > -60 && drawX < CONFIG.CANVAS_W + 60 && drawY > -60 && drawY < CONFIG.CANVAS_H + 60) {
-                if (w.type === 'wall') this.drawWall(drawX, drawY);
+                if (w.type === 'wall' || w.type === 'bedrock') {
+                    this.drawWall(drawX, drawY, w.type);
+                }
                 else if (w.type === 'box') {
                     this.ctx.fillStyle = ASSETS.box; 
                     this.ctx.fillRect(drawX + 5, drawY + 10, 40, 35);
                 }
-                else if (w.type === 'water') this.drawWater(drawX, drawY);
+                else if (w.type === 'water') {
+                    this.drawWater(drawX, drawY);
+                }
             }
         });
 
@@ -713,6 +774,8 @@ startMatch() {
         this.entities.forEach(e => e.draw(this.ctx, this.camera.x, this.camera.y));
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera.x, this.camera.y));
         this.floatingTexts.forEach(ft => ft.draw(this.ctx, this.camera.x, this.camera.y));
+        
+        this.drawGas();
 
         if (this.player) {
             this.ctx.globalAlpha = 1.0; 
