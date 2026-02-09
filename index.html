@@ -13,6 +13,7 @@
         
         <div id="ui-layer">
             <div id="hud">
+                <div id="hud-alive" style="color:white; font-family:impact; font-size:24px; margin-bottom:10px;">Brawlers: 10</div>
                 <div id="ammo-bar-container">
                     <div class="ammo-slot"><div class="ammo-filled" id="ammo1"></div></div>
                     <div class="ammo-slot"><div class="ammo-filled" id="ammo2"></div></div>
@@ -23,7 +24,7 @@
         </div>
 
         <div id="screen-home" class="screen">
-            <h1>AI Stars 1.8 Super Update</h1>
+            <h1>AI Stars 1.8</h1>
             <div style="display:flex; gap:20px">
                 <button class="btn btn-yel" id="btn-showdown">SKULL CREEK (SOLO)</button>
                 <button class="btn btn-red" id="btn-knockout">OUT IN OPEN (3v3)</button>
@@ -33,8 +34,14 @@
         <div id="screen-select" class="screen hidden">
             <h2>SELECT BRAWLER</h2>
             <div class="grid" id="grid"></div>
-            <div id="brawler-desc"></div>
-            <button class="btn btn-yel" id="play-btn">BRAWL!</button>
+            <div id="brawler-desc" style="margin:10px; font-weight:bold;"></div>
+            <button class="btn btn-yel" id="play-btn" disabled>SELECT A BRAWLER</button>
+        </div>
+
+        <div id="screen-result" class="screen hidden">
+            <h1 id="result-title" style="font-size: 60px; text-shadow: 2px 2px 0 #000;">VICTORY!</h1>
+            <div id="result-msg" style="font-size: 24px; margin-bottom: 20px;">Rank #1</div>
+            <button class="btn btn-yel" id="btn-menu">MAIN MENU</button>
         </div>
     </div>
 
