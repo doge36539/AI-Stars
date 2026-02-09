@@ -61,6 +61,7 @@ canvas {
     background: rgba(0,0,0,0.5);
     border: 2px solid #fff;
     border-radius: 4px;
+    transform: skewX(-20deg);
 }
 
 .ammo-filled {
@@ -88,7 +89,6 @@ canvas {
 }
 
 /* SUPER BUTTON (READY STATE = YELLOW) */
-/* We will add this class via JavaScript when charge hits 100 */
 #super-btn.super-charged {
     background: radial-gradient(circle, #f1c40f, #e67e22); /* YELLOW */
     border: 3px solid #fff;
@@ -119,6 +119,11 @@ canvas {
     color: white;
     z-index: 10;
     pointer-events: auto;
+}
+
+#screen-result {
+    backdrop-filter: blur(5px);
+    z-index: 20;
 }
 
 .hidden {
