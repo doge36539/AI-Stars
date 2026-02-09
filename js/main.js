@@ -851,13 +851,8 @@ class Game {
         this.drawGas();
 
         if (this.player) {
-            this.ctx.globalAlpha = 1.0; 
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.player.x + 20 - this.camera.x, this.player.y + 20 - this.camera.y);
-            this.ctx.lineTo(this.mouseX, this.mouseY);
-            this.ctx.stroke();
+            // Draw the new advanced reticle
+            drawReticle(this.ctx, this.player, this, this.mouseX, this.mouseY);
         }
     }
 }
