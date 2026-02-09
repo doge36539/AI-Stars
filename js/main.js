@@ -1,4 +1,5 @@
 // js/main.js
+import { drawReticle } from './combat/reticles.js';
 import { performAttack } from './combat/attacks.js';
 import { performSuper } from './combat/supers.js'; 
 import { BRAWLERS } from './data/brawler.js'; 
