@@ -1,37 +1,236 @@
-body { margin: 0; overflow: hidden; background: #222; font-family: sans-serif; user-select: none; }
+/* style.css */
 
-/* HUD */
-#ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; box-sizing: border-box; z-index: 5; }
-#hud-alive { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: white; text-shadow: 2px 2px 0 #000; font-family: Impact, sans-serif; }
-#hud-killfeed { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-.kill-msg { background: rgba(0,0,0,0.6); color: white; padding: 5px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; animation: fadeout 4s forwards; }
-@keyframes fadeout { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; display: none; } }
+/* --- GENERAL RESET --- */
+body {
+    margin: 0;
+    overflow: hidden; /* Prevents scrollbars */
+    background: #222;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none; /* Prevents highlighting text while playing */
+}
 
-/* CONTROLS */
-#controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; align-items: flex-end; z-index: 5; }
-#ammo-bar { display: flex; gap: 5px; margin-bottom: 10px; }
-.slot { width: 40px; height: 15px; background: #333; border: 2px solid #000; transform: skewX(-20deg); }
+/* --- HUD LAYER (Kill Feed & Alive Count) --- */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Lets clicks pass through to the game */
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 5;
+}
+
+#hud-alive {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 32px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 2px 2px 0 #000;
+    font-family: Impact, sans-serif;
+    letter-spacing: 1px;
+}
+
+#hud-killfeed {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+}
+
+.kill-msg {
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    animation: fadeout 4s forwards;
+    border-left: 4px solid #e74c3c;
+}
+
+@keyframes fadeout {
+    0% { opacity: 0; transform: translateX(20px); }
+    10% { opacity: 1; transform: translateX(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+/* --- GAME CONTROLS (Ammo & Super) --- */
+#controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    z-index: 5;
+}
+
+#ammo-bar {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.slot {
+    width: 40px;
+    height: 15px;
+    background: #333;
+    border: 2px solid #000;
+    transform: skewX(-20deg); /* The "Brawl Stars" slanted look */
+    transition: background 0.1s;
+}
 
 #super-btn {
-    width: 70px; height: 70px; background: #444; border: 3px solid #777; border-radius: 50%; 
-    color: #aaa; font-weight: bold; display: flex; align-items: center; justify-content: center; 
-    font-size: 12px; transition: all 0.3s ease; opacity: 0.7; pointer-events: auto;
+    width: 70px;
+    height: 70px;
+    background: #444;
+    border: 3px solid #777;
+    border-radius: 50%;
+    color: #aaa;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+    pointer-events: auto; /* Re-enable clicks */
+    user-select: none;
 }
+
 #super-btn.super-charged {
-    border: 3px solid #fff; color: white; box-shadow: 0 0 20px #f1c40f; 
-    opacity: 1; cursor: pointer; animation: pulse 1s infinite;
+    border: 3px solid #fff;
+    color: white;
+    box-shadow: 0 0 20px #f1c40f; /* Golden Glow */
+    opacity: 1;
+    cursor: pointer;
+    animation: pulse 1s infinite;
+    background: radial-gradient(circle, #f1c40f 0%, #d35400 100%);
 }
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-/* MENUS */
-#screen-home, #screen-select, #screen-result { 
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; 
-    color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 10; 
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
-#screen-result { background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 20; }
-.hidden { display: none !important; }
 
-.card { background: #34495e; padding: 20px; border-radius: 10px; cursor: pointer; text-align: center; width: 100px; margin: 10px; border: 3px solid transparent; }
-.card.selected { border-color: #f1c40f; background: #2c3e50; }
-button { padding: 15px 30px; font-size: 20px; cursor: pointer; border: none; background: #f1c40f; font-weight: bold; }
-button:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
+/* --- MENUS & SCREENS --- */
+#screen-home,
+#screen-select,
+#screen-result {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 10;
+}
+
+/* Specific styles for Result Screen */
+#screen-result {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    z-index: 20;
+}
+
+#result-title {
+    font-size: 80px;
+    margin: 0;
+    font-family: Impact, sans-serif;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#result-message {
+    font-size: 24px;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- BRAWLER SELECTION GRID --- */
+#grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 800px;
+}
+
+.card {
+    background: #34495e;
+    padding: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    width: 100px;
+    margin: 10px;
+    border: 3px solid transparent;
+    transition: transform 0.1s, border-color 0.1s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    background: #3e5871;
+}
+
+.card.selected {
+    border-color: #f1c40f;
+    background: #2c3e50;
+    box-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+}
+
+/* --- BUTTONS --- */
+button {
+    padding: 15px 30px;
+    font-size: 20px;
+    cursor: pointer;
+    border: none;
+    background: #f1c40f;
+    color: #2c3e50;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 0 4px 0 #d35400;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+button:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #d35400;
+}
+
+button:disabled {
+    background: #7f8c8d;
+    cursor: not-allowed;
+    opacity: 0.5;
+    box-shadow: none;
+    transform: none;
+}
+
+/* --- CANVAS --- */
+canvas {
+    display: block;
+}
