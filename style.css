@@ -1,176 +1,37 @@
-/* style.css */
+body { margin: 0; overflow: hidden; background: #222; font-family: sans-serif; user-select: none; }
 
-body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden; /* Stop scrollbars */
-    background-color: #000;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    touch-action: none; /* Stop zooming on phones */
-}
+/* HUD */
+#ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; box-sizing: border-box; z-index: 5; }
+#hud-alive { position: absolute; top: 20px; left: 20px; font-size: 32px; font-weight: 900; color: white; text-shadow: 2px 2px 0 #000; font-family: Impact, sans-serif; }
+#hud-killfeed { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.kill-msg { background: rgba(0,0,0,0.6); color: white; padding: 5px 10px; border-radius: 4px; font-size: 14px; font-weight: bold; animation: fadeout 4s forwards; }
+@keyframes fadeout { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; display: none; } }
 
-/* 1. WRAPPER: Holds the Game + UI together */
-#game-wrapper {
-    position: relative; /* Important! Keeps the UI inside this box */
-    width: 100vw;
-    height: 100vh;
-}
+/* CONTROLS */
+#controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 20px; align-items: flex-end; z-index: 5; }
+#ammo-bar { display: flex; gap: 5px; margin-bottom: 10px; }
+.slot { width: 40px; height: 15px; background: #333; border: 2px solid #000; transform: skewX(-20deg); }
 
-/* 2. CANVAS: The actual game screen */
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-/* 3. UI LAYER: Floating ON TOP of the game */
-#ui-layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Lets you click 'through' empty parts to play */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Pushes HUD to bottom */
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-/* 4. HUD: The bottom-right controls */
-#hud {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end; /* Align to right side */
-    gap: 15px;
-    pointer-events: auto; /* Re-enable clicks on buttons */
-    margin-bottom: 20px;
-    margin-right: 20px;
-}
-
-/* AMMO BARS */
-#ammo-bar-container {
-    display: flex;
-    gap: 5px;
-}
-
-.ammo-slot {
-    width: 40px;
-    height: 15px;
-    background: rgba(0,0,0,0.5);
-    border: 2px solid #fff;
-    border-radius: 4px;
-}
-
-.ammo-filled {
-    width: 100%;
-    height: 100%;
-    background: #e67e22; /* Orange Reload Color */
-}
-
-/* SUPER BUTTON (Default = GREY / EMPTY) */
 #super-btn {
-    width: 70px;
-    height: 70px;
-    background: #444; /* Grey */
-    border: 3px solid #777; /* Grey border */
-    border-radius: 50%;
-    color: #aaa;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    cursor: default; /* Don't show the hand cursor */
-    transition: all 0.3s ease;
-    opacity: 0.7;
+    width: 70px; height: 70px; background: #444; border: 3px solid #777; border-radius: 50%; 
+    color: #aaa; font-weight: bold; display: flex; align-items: center; justify-content: center; 
+    font-size: 12px; transition: all 0.3s ease; opacity: 0.7; pointer-events: auto;
 }
-
-/* SUPER BUTTON (READY STATE = YELLOW) */
-/* We will add this class via JavaScript when charge hits 100 */
 #super-btn.super-charged {
-    background: radial-gradient(circle, #f1c40f, #e67e22); /* YELLOW */
-    border: 3px solid #fff;
-    color: white;
-    box-shadow: 0 0 20px #f1c40f;
-    text-shadow: 1px 1px 0 #000;
-    cursor: pointer;
-    opacity: 1;
-    animation: pulse 1s infinite;
+    border: 3px solid #fff; color: white; box-shadow: 0 0 20px #f1c40f; 
+    opacity: 1; cursor: pointer; animation: pulse 1s infinite;
 }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+/* MENUS */
+#screen-home, #screen-select, #screen-result { 
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; 
+    color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 10; 
 }
+#screen-result { background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 20; }
+.hidden { display: none !important; }
 
-/* MENUS (Selection Screen) */
-.screen {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85); /* Dark see-through background */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    z-index: 10;
-    pointer-events: auto;
-}
-
-.hidden {
-    display: none !important;
-}
-
-/* CARDS */
-.grid {
-    display: flex;
-    gap: 15px;
-    max-width: 800px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.card {
-    width: 100px;
-    height: 120px;
-    background: #2c3e50;
-    border: 2px solid #34495e;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.card:hover { transform: translateY(-5px); border-color: #fff; }
-.card.selected { border-color: #2ecc71; background: #27ae60; }
-
-/* BUTTONS */
-.btn {
-    padding: 15px 40px;
-    font-size: 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    color: white;
-    text-transform: uppercase;
-}
-
-.btn-yel { background: #f39c12; border-bottom: 4px solid #d35400; }
-.btn-yel:active { transform: translateY(2px); border-bottom: 2px solid #d35400; }
-.btn-red { background: #c0392b; border-bottom: 4px solid #922b21; }
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #7f8c8d;
-    border-bottom: 4px solid #555;
-}
+.card { background: #34495e; padding: 20px; border-radius: 10px; cursor: pointer; text-align: center; width: 100px; margin: 10px; border: 3px solid transparent; }
+.card.selected { border-color: #f1c40f; background: #2c3e50; }
+button { padding: 15px 30px; font-size: 20px; cursor: pointer; border: none; background: #f1c40f; font-weight: bold; }
+button:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.5; }
